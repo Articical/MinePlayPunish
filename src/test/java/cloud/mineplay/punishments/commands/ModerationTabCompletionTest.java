@@ -261,4 +261,33 @@ class ModerationTabCompletionTest {
     grant("gui");
     assertTrue(complete("mp", "admin", "quarry", "").isEmpty());
   }
+
+  @Test
+  void silentOptionsAreSuggestedOnlyForPermittedMutationsBeforeTerminator() {
+    assertTrue(complete("warn", "-").isEmpty());
+    grant("warn", "service.issue", "service.modify", "service.release");
+    assertEquals(List.of("-s", "--silent"), complete("warn", "-"));
+    assertEquals(List.of("--silent"), complete("warn", "Alice", "Reason", "--s"));
+    assertEquals(List.of("Alice"), complete("warn", "-s", "Al"));
+    assertEquals(List.of("--silent"), complete("service", "issue", "Alice", "10", "Reason", "--s"));
+    assertEquals(List.of("Alice"), complete("service", "-s", "issue", "Al"));
+    assertTrue(complete("service", "progress", "--s").isEmpty());
+    assertTrue(complete("warn", "Alice", "--", "--s").isEmpty());
+    assertTrue(complete("mp", "admin", "status", "--s").isEmpty());
+  }
+
+  @Test
+  void warningsCompletionUsesNewPermissionsAndHistoryCompatibility() {
+    assertTrue(complete("warnings", "").isEmpty());
+    grant("warnings");
+    assertEquals(List.of("Staff"), complete("warnings", ""));
+    assertEquals(List.of("--page"), complete("warnings", "--p"));
+    assertTrue(complete("warnings", "--s").isEmpty());
+    grant("warnings.others");
+    assertEquals(List.of("Alice"), complete("warns", "Al"));
+    permissions.clear();
+    grant("history", "history.others");
+    assertEquals(List.of("Alice"), complete("warnings", "Al"));
+    assertEquals(List.of("--page"), complete("history", "Staff", "--p"));
+  }
 }

@@ -1,0 +1,269 @@
+# Mineplay UK adult-community moderation preset, reviewed 2026-10-20.
+# Requires MineplayPunishments 1.1.0; no new JAR needed.
+# REPLACE ONLY your existing chat-filter section in the plugin config.yml.
+# Do not replace the rest of config.yml. This is not a standalone plugin config.
+# Apply with /mp admin reload. Existing failed regex edits must be repaired.
+# Ordinary profanity remains allowed. This is not a Mojang/Xbox compliance certificate.
+# Literal forms are exact whole words/phrases; obfuscation coverage is the 32 named rules.
+# Some quoted/reclaimed slurs still match. Report those privately to staff.
+# No keyword filter guarantees zero false positives or catches every evasion.
+# Source, exclusions, tests and policy notes: docs/chat-filter-uk-adult.md
+chat-filter:
+  enabled: true
+  # 182 literal entries; includes plurals and compounds.
+  banned-words:
+    # Racial and ethnic slurs; whole words, including common plural and compound forms
+    - 'nigger'
+    - 'niggers'
+    - 'nigga'
+    - 'niggas'
+    - 'niggah'
+    - 'niggahs'
+    - 'nigguh'
+    - 'nigguhs'
+    - 'niglet'
+    - 'niglets'
+    - 'niggress'
+    - 'nigresses'
+    - 'niggerlover'
+    - 'niggerlovers'
+    - 'nigger lover'
+    - 'nigger lovers'
+    - 'niggalover'
+    - 'niggalovers'
+    - 'jigaboo'
+    - 'jigaboos'
+    - 'jiggaboo'
+    - 'jiggaboos'
+    - 'jigabo'
+    - 'jigabos'
+    - 'porchmonkey'
+    - 'porchmonkeys'
+    - 'porch monkey'
+    - 'porch monkeys'
+    - 'junglebunny'
+    - 'junglebunnies'
+    - 'jungle bunny'
+    - 'jungle bunnies'
+    - 'gookhead'
+    - 'gookheads'
+    - 'chinky'
+    - 'chinkies'
+    - 'chingchong'
+    - 'ching chong'
+    - 'ching-chong'
+    - 'paki'
+    - 'pakis'
+    - 'pakki'
+    - 'pakkis'
+    - 'pakkie'
+    - 'pakkies'
+    - 'pakibashing'
+    - 'paki bashing'
+    - 'paki-bashing'
+    - 'currymuncher'
+    - 'currymunchers'
+    - 'curry muncher'
+    - 'curry munchers'
+    - 'sandnigger'
+    - 'sandniggers'
+    - 'sand nigger'
+    - 'sand niggers'
+    - 'sandnigga'
+    - 'sandniggas'
+    - 'sand nigga'
+    - 'sand niggas'
+    - 'raghead'
+    - 'ragheads'
+    - 'towelhead'
+    - 'towelheads'
+    - 'muzzie'
+    - 'muzzies'
+    - 'beaner'
+    - 'beaners'
+    - 'pikey'
+    - 'pikeys'
+    - 'kikeboy'
+    - 'kikeboys'
+    - 'kike lover'
+    - 'kike lovers'
+    - 'kikelover'
+    - 'kikelovers'
+    - 'heeb'
+    - 'heebs'
+    - 'hymietown'
+    # Anti-LGBT slurs and compounds; ambiguous identity words are deliberately absent
+    - 'poofter'
+    - 'poofters'
+    - 'pooftah'
+    - 'pooftahs'
+    - 'battyboy'
+    - 'battyboys'
+    - 'batty boy'
+    - 'batty boys'
+    - 'battyman'
+    - 'battymen'
+    - 'batty man'
+    - 'batty men'
+    - 'shirtlifter'
+    - 'shirtlifters'
+    - 'shirt lifter'
+    - 'shirt lifters'
+    - 'fagboy'
+    - 'fagboys'
+    - 'fagbag'
+    - 'fagbags'
+    - 'faglord'
+    - 'faglords'
+    - 'fagfucker'
+    - 'fagfuckers'
+    - 'faggotry'
+    - 'faggotboy'
+    - 'faggotboys'
+    - 'faggotlover'
+    - 'faggotlovers'
+    - 'faggot lover'
+    - 'faggot lovers'
+    - 'shemale'
+    - 'shemales'
+    - 'she-male'
+    - 'she-males'
+    - 'trannyfucker'
+    - 'trannyfuckers'
+    - 'tranny lover'
+    - 'tranny lovers'
+    # Disability-related insults; medical or engineering words such as spastic and retard are absent
+    - 'spaz'
+    - 'spazz'
+    - 'spazzer'
+    - 'spazzers'
+    - 'spacker'
+    - 'spackers'
+    - 'fucktard'
+    - 'fucktards'
+    # Further ethnic or homophobic abuse compounds; exact forms rather than broad roots
+    - 'niggerfucker'
+    - 'niggerfuckers'
+    - 'niggafucker'
+    - 'niggafuckers'
+    - 'niggerfuck'
+    - 'niggerfucks'
+    - 'niggerfag'
+    - 'niggerfags'
+    - 'nigganog'
+    - 'nigganogs'
+    - 'nignog'
+    - 'nignogs'
+    - 'sand-nigger'
+    - 'sand-niggers'
+    - 'sand-nigga'
+    - 'sand-niggas'
+    - 'rag-head'
+    - 'rag-heads'
+    - 'towel-head'
+    - 'towel-heads'
+    - 'paki-basher'
+    - 'paki-bashers'
+    - 'pakibasher'
+    - 'pakibashers'
+    - 'paki lover'
+    - 'paki lovers'
+    - 'pakilover'
+    - 'pakilovers'
+    - 'chinklover'
+    - 'chinklovers'
+    - 'chinkfucker'
+    - 'chinkfuckers'
+    - 'gooklover'
+    - 'gooklovers'
+    - 'gookfucker'
+    - 'gookfuckers'
+    - 'kikefucker'
+    - 'kikefuckers'
+    - 'fagface'
+    - 'fagfaces'
+    - 'faggotface'
+    - 'faggotfaces'
+    - 'fagfuck'
+    - 'fagfucks'
+    - 'fag-fucker'
+    - 'fag-fuckers'
+    - 'batty-boy'
+    - 'batty-boys'
+    - 'batty-man'
+    - 'batty-men'
+    - 'shirt-lifter'
+    - 'shirt-lifters'
+    - 'poofterboy'
+    - 'poofterboys'
+    - 'shemalefucker'
+    - 'shemalefuckers'
+  # 32 RE2/J rules; keep YAML single quotes and backslashes unchanged.
+  # NFKC/case folding/FORMAT removal already happen in the plugin.
+  # Explicit Unicode boundaries prevent matches inside longer ordinary words.
+  # Anchored rules deliberately leave longer/ambiguous messages for staff review.
+  regex-patterns:
+    # anti-black-hard-r: Whole-word hard-r slur, optional plural and selected bounded repeated letters; boundaries protect snigger and other longer words.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])n{1,3}[\s._-]*[i1!]{1,3}[\s._-]*[g9][\s._-]*[g9]{1,2}[\s._-]*[e3]{1,3}[\s._-]*r{1,3}(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # anti-black-soft-a: Whole-word soft-a variant, optional plural and selected bounded repeated letters. Reclaimed usage is still filtered.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])n{1,3}[\s._-]*[i1!]{1,3}[\s._-]*[g9][\s._-]*[g9]{1,2}[\s._-]*[a4]{1,3}(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # porch-monkey: Racist compound with spaced, joined or conventionally obfuscated letters.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])p[\s._-]*[o0][\s._-]*r[\s._-]*c[\s._-]*h[\s._-]*m[\s._-]*[o0][\s._-]*n[\s._-]*k[\s._-]*[e3][\s._-]*y(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # jungle-bunny: Racist compound, including its correct plural; ordinary separate jungle and bunny discussion is unaffected.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])j[\s._-]*u[\s._-]*n[\s._-]*[g9][\s._-]*l[\s._-]*[e3][\s._-]*b[\s._-]*u[\s._-]*n[\s._-]*n[\s._-]*(?:y|[i1!][\s._-]*[e3][\s._-]*[s5$])($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # directed-coon: Ambiguous animal/name term: only an entire direct insult, with optional abusive modifier, is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?c[\s._-]*[o0][\s._-]*[o0][\s._-]*n(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # anti-south-asian-paki: Whole-word ethnic slur; Unicode word boundaries protect Pakistan, Pakistani and names containing the sequence.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])p[\s._-]*[a4][\s._-]*k(?:[\s._-]*k)?[\s._-]*[i1!](?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # curry-muncher: Racist compound; food and curry discussion without the compound is allowed.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])c[\s._-]*u[\s._-]*r[\s._-]*r[\s._-]*y[\s._-]*m[\s._-]*u[\s._-]*n[\s._-]*c[\s._-]*h[\s._-]*[e3][\s._-]*r(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # directed-gook: Ambiguous sticky-material term: restricted to a whole-message direct insult.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?[g9][\s._-]*[o0][\s._-]*[o0][\s._-]*k(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # ching-chong: Racist mock-language phrase; ordinary Chinese identity and language discussion remains allowed.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])c[\s._-]*h[\s._-]*[i1!][\s._-]*n[\s._-]*[g9][\s._-]*c[\s._-]*h[\s._-]*[o0][\s._-]*n[\s._-]*[g9]($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # directed-chink: Ambiguous gap/armour term: only a whole-message directed noun insult is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+(?:(?:dirty|filthy)\s+)?|(?:dirty|filthy)\s+)c[\s._-]*h[\s._-]*[i1!][\s._-]*n[\s._-]*k(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-kike: Also a personal nickname: require a directed noun insult or an abusive modifier, and no sentence continuation.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+(?:(?:dirty|filthy)\s+)?|(?:dirty|filthy)\s+)k[\s._-]*[i1!][\s._-]*k[\s._-]*[e3](?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # anti-romani-pikey: Whole-word anti-Traveller slur; nationality and community names are not rules.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])p[\s._-]*[i1!][\s._-]*k[\s._-]*[e3][\s._-]*y(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # directed-wetback: Wet-back descriptions can be literal; only an entire directed insult is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?w[\s._-]*[e3][\s._-]*[t7][\s._-]*b[\s._-]*[a4][\s._-]*c[\s._-]*k(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-spic: Preserves the UK phrase spic and span by requiring a complete directed noun insult.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+(?:(?:dirty|filthy)\s+)?|(?:dirty|filthy)\s+)[s5$][\s._-]*p[\s._-]*[i1!][\s._-]*c(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # sand-nword: Racist compound using hard-r or soft-a ending; covers the joined form which the standalone n-word boundaries cannot catch.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])[s5$][\s._-]*[a4][\s._-]*n[\s._-]*d[\s._-]*n[\s._-]*[i1!][\s._-]*[g9][\s._-]*[g9][\s._-]*(?:[e3][\s._-]*r|[a4])(?:[\s._-]*[s5$])?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # racist-head-compounds: Obfuscated racist head compounds only in whole-message directed insults, to preserve literal towel-head clothing descriptions. The assembled literal list separately blocks unambiguous joined forms.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?(?:r[\s._-]*[a4][\s._-]*[g9]|[t7][\s._-]*[o0][\s._-]*w[\s._-]*[e3][\s._-]*l)[\s._-]*h[\s._-]*[e3][\s._-]*[a4][\s._-]*d(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-fag-faggot: UK cigarette and traditional-food senses remain allowed. Requires an entire direct insult; catches both short and longer forms.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?f[\s._-]*[a4][\s._-]*[g9](?:[\s._-]*[g9][\s._-]*[o0][\s._-]*[t7])?(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-poof: Magic/noise word is ambiguous; only an entire direct insult is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?p[\s._-]*[o0][\s._-]*[o0][\s._-]*f(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # abusive-directed-queer: Queer is an identity word. A whole-message directed insult must also include dirty or filthy.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:dirty|filthy)\s+q[\s._-]*u[\s._-]*[e3][\s._-]*[e3][\s._-]*r(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-dyke: Preserves geographic/flood-defence senses and unqualified identity discussion; requires a complete directed noun insult.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+(?:(?:dirty|filthy)\s+)?|(?:dirty|filthy)\s+)d[\s._-]*y[\s._-]*k[\s._-]*[e3](?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-tranny: British transmission/radio slang is ambiguous: only an entire direct insult is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?[t7][\s._-]*r[\s._-]*[a4][\s._-]*n[\s._-]*n[\s._-]*y(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # anti-trans-shemale: Obfuscated anti-trans label only in whole-message directed insults: a spacing-insensitive unconditional rule would incorrectly match "Is she male?". Joined/hyphenated literal forms are handled separately.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?[s5$][\s._-]*h[\s._-]*[e3][\s._-]*m[\s._-]*[a4][\s._-]*l[\s._-]*[e3](?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-retard: Technical timing/retardation language remains allowed; only an entire direct insult is blocked.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+)?(?:(?:dirty|filthy)\s+)?r[\s._-]*[e3][\s._-]*[t7][\s._-]*[a4][\s._-]*r[\s._-]*d(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # directed-spastic: Clinical spasticity language remains allowed; require a complete directed noun insult or an abusive modifier.
+    - '^\s*(?:you|u)(?:\s+(?:are|r)|[\x{27}\x{2019}]re)?\s+(?:a\s+(?:(?:dirty|filthy)\s+)?|(?:dirty|filthy)\s+)[s5$][\s._-]*p[\s._-]*[a4][\s._-]*[s5$][\s._-]*[t7][\s._-]*[i1!][\s._-]*c(?:[\s._-]*[s5$])?[.!?]*\s*$'
+    # standalone-nazi-salutes: Whole-message Nazi salutes. History, names and explanatory sentences are deliberately outside this contextual regex.
+    - '^\s*(?:h[\s._-]*[e3][\s._-]*[i1!][\s._-]*l[\s._-]*h[\s._-]*[i1!][\s._-]*[t7][\s._-]*l[\s._-]*[e3][\s._-]*r|[s5$][\s._-]*[i1!][\s._-]*[e3][\s._-]*[g9][\s._-]*h[\s._-]*[e3][\s._-]*[i1!][\s._-]*l)[.!?]*\s*$'
+    # standalone-white-power: Whole-message supremacist slogan, to avoid ordinary descriptions such as white power cable.
+    - '^\s*w[\s._-]*h[\s._-]*[i1!][\s._-]*[t7][\s._-]*[e3][\s._-]*p[\s._-]*[o0][\s._-]*w[\s._-]*[e3][\s._-]*r[.!?]*\s*$'
+    # standalone-self-harm-imperatives: Entire kill-yourself, go-die or KYS command only. Negated advice, support and explicit extended game instructions are deliberately outside this rule.
+    - '^\s*(?:k[\s._-]*[i1!][\s._-]*l[\s._-]*l[\s._-]*y[\s._-]*[o0][\s._-]*u[\s._-]*r[\s._-]*[s5$][\s._-]*[e3][\s._-]*l[\s._-]*f|[g9][\s._-]*[o0][\s._-]+d[\s._-]*[i1!][\s._-]*[e3]|k[\s._-]*y[\s._-]*[s5$])[.!?]*\s*$'
+    # standalone-sexual-image-request: Stand-alone nude-image solicitation. Negation and safety advice are not matched; ordinary adult topics remain allowed.
+    - '^\s*(?:please\s+)?[s5$][\s._-]*[e3][\s._-]*n[\s._-]*d\s+(?:me\s+)?(?:(?:your|ur)\s+)?n[\s._-]*u[\s._-]*d[\s._-]*[e3](?:[\s._-]*[s5$]|\s+(?:pics|pictures))\s*(?:please\s*)?[.!?]*\s*$'
+    # standalone-credential-request: Stand-alone first-person request for a password or recovery/verification code; advice and negation remain allowed.
+    - '^\s*(?:please\s+)?(?:send|give|tell)\s+me\s+(?:your|ur)\s+(?:p[\s._-]*[a4][\s._-]*[s5$][\s._-]*[s5$][\s._-]*w[\s._-]*[o0][\s._-]*r[\s._-]*d|(?:recovery|verification)\s+code)\s*(?:please\s*)?[.!?]*\s*$'
+    # standalone-explicit-threat: Whole-message first-person sexual threat or explicit real-world death threat. Ordinary PvP language and third-person reports are not matched.
+    - '^\s*i(?:[\x{27}\x{2019}]ll|\s+will|\s+am\s+going\s+to)\s+(?:(?:k[i1!]ll|murd[e3]r|sh[o0][o0]t|st[a4]b)\s+(?:you|u)\s+(?:irl|in\s+real\s+life)|r[a4]p[e3]\s+(?:you|u|your\s+(?:mum|mom|mother|sister)))[.!?]*\s*$'
+    # standalone-nazi-praise: Specific whole-message praise or calls to restore Hitler. Historical mentions, condemnation, reports and statements with other predicates remain allowed.
+    - '^\s*(?:h[\s._-]*[i1!][\s._-]*[t7][\s._-]*l[\s._-]*[e3][\s._-]*r\s+(?:was\s+r[i1!]ght|did\s+n[o0]thing\s+(?:wr[o0]ng|bad)|should\s+have\s+finished)|bring\s+back\s+h[i1!][t7]l[e3]r)[.!?]*\s*$'
+    # standalone-dox-swat-address-threat: Whole-message first-person doxxing, swatting or address-exposure threat. The verbs and address support selected digit substitutions; reporting and prevention advice are allowed.
+    - '^\s*i(?:[\x{27}\x{2019}]ll|\s+will|\s+am\s+going\s+to)\s+(?:d[o0]xx?\s+(?:you|u)|[s5$]w[a4][t7]\s+(?:you|u|(?:your|ur)\s+h[o0]u[s5$][e3])|l[e3][a4]k\s+(?:your|ur)\s+[a4]ddr[e3][s5$][s5$])[.!?]*\s*$'

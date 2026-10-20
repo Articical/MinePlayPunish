@@ -39,6 +39,7 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
             "kick",
             "service",
             "history",
+            "warnings",
             "checkban",
             "checkmute",
             "mp")) {
@@ -52,14 +53,21 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
   @Override
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     try {
-      String name = command.getName().toLowerCase(Locale.ROOT);
+      String name = Arguments.bareCommand(command.getName());
+      if (name.equals("warns")) name = "warnings";
       var parsed = CommandGrammar.parser(name).parseArgs(Arguments.tokens(String.join(" ", args)));
       String parent = name;
+      boolean silent = parsed.matchedOptionValue("--silent", false);
+      boolean silentOption = parsed.hasMatchedOption("--silent");
       while (parsed.hasSubcommand()) {
         parent = parsed.commandSpec().name();
         parsed = parsed.subcommand();
+        silent |= parsed.matchedOptionValue("--silent", false);
+        silentOption |= parsed.hasMatchedOption("--silent");
       }
       String leaf = parsed.commandSpec().name();
+      if (name.equals("service") && leaf.equals("progress") && silentOption)
+        throw new IllegalArgumentException("Silent mode is only available for punishment actions");
       boolean recoveryCommand =
           name.equals("mp")
               && parent.equals("admin")
@@ -67,65 +75,19 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
       if (!plugin.punishments().healthy() && !recoveryCommand)
         throw new IllegalArgumentException("Moderation database is unavailable; action refused");
       if (name.equals("mp")) admin(sender, parent, leaf, parsed);
-      else if (name.equals("service")) service(sender, leaf, parsed);
-      else ordinary(sender, name, parsed);
+      else if (name.equals("service")) service(sender, leaf, parsed, silent);
+      else ordinary(sender, name, parsed, silent);
     } catch (IllegalArgumentException | CommandLine.ParameterException ex) {
       error(sender, ex.getMessage());
     }
     return true;
   }
 
-  private void ordinary(CommandSender sender, String command, CommandLine.ParseResult args) {
+  private void ordinary(
+      CommandSender sender, String command, CommandLine.ParseResult args, boolean silent) {
     String target = value(args, 0);
-    if (command.equals("history")) {
-      require(sender, "history");
-      resolve(
-          sender,
-          target,
-          id -> {
-            if (!(sender instanceof Player player) || !player.getUniqueId().equals(id))
-              require(sender, "history.others");
-            plugin
-                .punishments()
-                .history(id)
-                .whenComplete(
-                    (history, failure) ->
-                        plugin.onMain(
-                            () -> {
-                              if (failure != null) {
-                                error(sender, "History could not be loaded");
-                                return;
-                              }
-                              // Recheck after the database response; never include appeal
-                              // credentials.
-                              if (!sender.hasPermission("mineplaypunishments.history")) return;
-                              if (!(sender instanceof Player player)
-                                  || !player.getUniqueId().equals(id)) {
-                                if (!sender.hasPermission("mineplaypunishments.history.others"))
-                                  return;
-                              }
-                              if (history.isEmpty()) success(sender, "No punishment records");
-                              history.stream()
-                                  .limit(50)
-                                  .forEach(
-                                      p ->
-                                          sender.sendMessage(
-                                              plugin
-                                                  .messages()
-                                                  .text(
-                                                      "history-entry",
-                                                      "reference",
-                                                      p.reference(),
-                                                      "type",
-                                                      p.type().name(),
-                                                      "status",
-                                                      p.status().name(),
-                                                      "issued",
-                                                      p.issuedAt().toString(),
-                                                      "reason",
-                                                      p.reason())));
-                            }));
-          });
+    if (command.equals("history") || command.equals("warnings")) {
+      records(sender, command.equals("warnings"), target, args.matchedOptionValue("--page", 1));
       return;
     }
     if (command.equals("checkban") || command.equals("checkmute")) {
@@ -198,11 +160,107 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
                               plugin.getConfig().getInt("punishments.warnings.expiration-days")))
                       .toString());
           }
-          apply(sender, id, punishmentId, revision, actionType, payload);
+          apply(sender, id, punishmentId, revision, actionType, payload, silent);
         });
   }
 
-  private void service(CommandSender sender, String leaf, CommandLine.ParseResult args) {
+  private void records(CommandSender sender, boolean warnings, String target, int page) {
+    if (page < 1) throw new IllegalArgumentException("Page must be a positive whole number");
+    requireRecords(sender, warnings, false);
+    resolve(
+        sender,
+        target,
+        id -> {
+          boolean others = !(sender instanceof Player player) || !player.getUniqueId().equals(id);
+          requireRecords(sender, warnings, false);
+          if (others) requireRecords(sender, warnings, true);
+          var request =
+              warnings
+                  ? plugin.punishments().warnings(id, page, 10)
+                  : plugin.punishments().history(id, page, 10);
+          request.whenComplete(
+              (history, failure) ->
+                  plugin.onMain(
+                      () -> {
+                        // Permissions can change while resolving names or loading persisted
+                        // records.
+                        if (!canReadRecords(sender, warnings, false)
+                            || (others && !canReadRecords(sender, warnings, true))) return;
+                        if (failure != null) {
+                          error(
+                              sender,
+                              warnings
+                                  ? "Warnings could not be loaded"
+                                  : "History could not be loaded");
+                          return;
+                        }
+                        if (history.total() == 0) {
+                          success(
+                              sender, warnings ? "No warning records" : "No punishment records");
+                          return;
+                        }
+                        if (history.entries().isEmpty()) {
+                          error(
+                              sender,
+                              "Page is out of range; there are " + history.totalPages() + " pages");
+                          return;
+                        }
+                        String name = warnings ? "warnings" : "history";
+                        success(
+                            sender,
+                            (warnings ? "Warnings" : "History")
+                                + " for "
+                                + id
+                                + ": page "
+                                + history.page()
+                                + " of "
+                                + history.totalPages()
+                                + " ("
+                                + history.total()
+                                + " records)");
+                        for (Punishment punishment : history.entries()) {
+                          sender.sendMessage(
+                              plugin
+                                  .messages()
+                                  .text(
+                                      "history-entry",
+                                      "reference",
+                                      punishment.reference(),
+                                      "type",
+                                      punishment.type().name(),
+                                      "status",
+                                      punishment.status().name(),
+                                      "issued",
+                                      punishment.issuedAt().toString(),
+                                      "reason",
+                                      punishment.reason()));
+                        }
+                        if (history.hasNext()) {
+                          success(
+                              sender,
+                              "Next page: /mineplaypunishments:"
+                                  + name
+                                  + " "
+                                  + id
+                                  + " --page "
+                                  + (history.page() + 1));
+                        }
+                      }));
+        });
+  }
+
+  private static boolean canReadRecords(CommandSender sender, boolean warnings, boolean others) {
+    String suffix = others ? ".others" : "";
+    return (warnings && has(sender, "warnings" + suffix)) || has(sender, "history" + suffix);
+  }
+
+  private static void requireRecords(CommandSender sender, boolean warnings, boolean others) {
+    if (!canReadRecords(sender, warnings, others))
+      throw new IllegalArgumentException("You do not have permission for this action");
+  }
+
+  private void service(
+      CommandSender sender, String leaf, CommandLine.ParseResult args, boolean silent) {
     String target = value(args, 0);
     if (leaf.equals("progress")) {
       resolve(
@@ -227,7 +285,7 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
           "Community Service is unavailable; configure and validate the quarry first");
     if (target == null)
       throw new IllegalArgumentException(
-          "Use /service <player> <blocks> <reason> [--tool wooden|stone]");
+          "Use /service <player> <blocks> <reason> [--tool wooden|stone] [-s]");
     JsonObject payload = new JsonObject();
     payload.addProperty(
         "reason",
@@ -299,7 +357,7 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
             type =
                 leaf.equals("release") ? ActionType.RELEASE_SERVICE : ActionType.ADD_SERVICE_BLOCKS;
           }
-          apply(sender, id, punishmentId, revision, type, payload);
+          apply(sender, id, punishmentId, revision, type, payload, silent);
         });
   }
 
@@ -332,7 +390,14 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
       if (args.hasMatchedOption("--rotate")) {
         JsonObject payload = new JsonObject();
         payload.add("appealUrl", com.google.gson.JsonNull.INSTANCE);
-        apply(sender, p.targetId(), p.id(), p.revision(), ActionType.ROTATE_APPEAL_TOKEN, payload);
+        apply(
+            sender,
+            p.targetId(),
+            p.id(),
+            p.revision(),
+            ActionType.ROTATE_APPEAL_TOKEN,
+            payload,
+            false);
         return;
       }
       sender.sendMessage(plugin.messages().punishment(p.type() == Type.BAN ? "ban" : "mute", p));
@@ -394,7 +459,9 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
       UUID punishment,
       Long revision,
       ActionType type,
-      JsonObject payload) {
+      JsonObject payload,
+      boolean silent) {
+    String actorName = sender.getName();
     Player online = Bukkit.getPlayer(target);
     String targetName = online == null ? null : online.getName();
     String actor = sender instanceof Player p ? p.getUniqueId().toString() : "CONSOLE";
@@ -439,12 +506,22 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
                       success(
                           sender,
                           result.punishment().reference()
-                              + " saved. "
+                              + " saved."
                               + (type == ActionType.CREATE_KICK
-                                  ? "Kick delivery will be recorded separately."
-                                  : "Enforcement updated."));
-                      plugin.enforcement().enforceAll();
-                      plugin.sync().trigger();
+                                  ? " Kick delivery will be recorded separately."
+                                  : ""));
+                      try {
+                        plugin.enforcement().enforce(target);
+                      } catch (RuntimeException enforcementFailure) {
+                        plugin.logFailure("moderation_post_commit_enforcement", enforcementFailure);
+                      }
+                      try {
+                        plugin.sync().trigger();
+                      } catch (RuntimeException syncFailure) {
+                        plugin.logFailure("moderation_post_commit_sync", syncFailure);
+                      }
+                      if (type != ActionType.ROTATE_APPEAL_TOKEN)
+                        plugin.announcements().announce(action, result, actorName, silent);
                     }));
   }
 
@@ -559,6 +636,17 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
       CommandSender sender, Command command, String alias, String[] args) {
     String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(Locale.ROOT);
     String name = Arguments.bareCommand(command.getName());
+    if (name.equals("warns")) name = "warnings";
+    if (!name.equals("mp")
+        && !java.util.Arrays.asList(args).contains("--")
+        && prefix.startsWith("-")) {
+      List<String> options = optionCompletions(sender, name, args);
+      return options.stream().filter(option -> option.startsWith(prefix)).toList();
+    }
+    args =
+        java.util.Arrays.stream(args)
+            .filter(argument -> !argument.equals("-s") && !argument.equals("--silent"))
+            .toArray(String[]::new);
     List<String> candidates =
         switch (name) {
           case "mp" -> adminCompletions(sender, args);
@@ -569,6 +657,31 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
         .filter(candidate -> candidate.toLowerCase(Locale.ROOT).startsWith(prefix))
         .distinct()
         .toList();
+  }
+
+  private List<String> optionCompletions(CommandSender sender, String name, String[] args) {
+    if (name.equals("history") || name.equals("warnings")) {
+      return canReadRecords(sender, name.equals("warnings"), false) ? List.of("--page") : List.of();
+    }
+    if (List.of("ban", "tempban", "unban", "mute", "tempmute", "unmute", "warn", "kick")
+        .contains(name)) return has(sender, name) ? List.of("-s", "--silent") : List.of();
+    if (name.equals("service")) {
+      String first =
+          java.util.Arrays.stream(args)
+              .filter(argument -> !argument.startsWith("-"))
+              .findFirst()
+              .orElse("")
+              .toLowerCase(Locale.ROOT);
+      String permission =
+          switch (first) {
+            case "progress" -> null;
+            case "release" -> "service.release";
+            case "add" -> "service.modify";
+            default -> "service.issue";
+          };
+      return permission != null && has(sender, permission) ? List.of("-s", "--silent") : List.of();
+    }
+    return List.of();
   }
 
   private List<String> adminCompletions(CommandSender sender, String[] args) {
@@ -643,12 +756,16 @@ public final class ModerationCommands implements CommandExecutor, TabCompleter {
                 "warn",
                 "kick",
                 "history",
+                "warnings",
                 "checkban",
                 "checkmute")
             .contains(name)
-        || !has(sender, name)) return List.of();
+        || (name.equals("warnings") ? !canReadRecords(sender, true, false) : !has(sender, name)))
+      return List.of();
     if (args.length <= 1) {
-      return onlineTargets(sender, !name.equals("history") || has(sender, "history.others"));
+      boolean records = name.equals("history") || name.equals("warnings");
+      return onlineTargets(
+          sender, !records || canReadRecords(sender, name.equals("warnings"), true));
     }
     if (args.length == 2 && (name.equals("tempban") || name.equals("tempmute"))) {
       return List.of("30m", "1h", "4h", "8h", "1d", "7d", "30d", "permanent");

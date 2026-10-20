@@ -1,0 +1,57 @@
+{
+  "Racial and ethnic slurs; whole words, including common plural and compound forms": [
+    "nigger", "niggers", "nigga", "niggas", "niggah", "niggahs", "nigguh", "nigguhs",
+    "niglet", "niglets", "niggress", "nigresses", "niggerlover", "niggerlovers",
+    "nigger lover", "nigger lovers", "niggalover", "niggalovers",
+    "jigaboo", "jigaboos", "jiggaboo", "jiggaboos", "jigabo", "jigabos",
+    "porchmonkey", "porchmonkeys", "porch monkey", "porch monkeys",
+    "junglebunny", "junglebunnies", "jungle bunny", "jungle bunnies",
+    "gookhead", "gookheads",
+    "chinky", "chinkies", "chingchong", "ching chong", "ching-chong",
+    "paki", "pakis", "pakki", "pakkis", "pakkie", "pakkies",
+    "pakibashing", "paki bashing", "paki-bashing",
+    "currymuncher", "currymunchers", "curry muncher", "curry munchers",
+    "sandnigger", "sandniggers", "sand nigger", "sand niggers",
+    "sandnigga", "sandniggas", "sand nigga", "sand niggas",
+    "raghead", "ragheads",
+    "towelhead", "towelheads",
+    "muzzie", "muzzies",
+    "beaner", "beaners",
+    "pikey", "pikeys",
+    "kikeboy", "kikeboys", "kike lover", "kike lovers", "kikelover", "kikelovers",
+    "heeb", "heebs", "hymietown"
+  ],
+  "Anti-LGBT slurs and compounds; ambiguous identity words are deliberately absent": [
+    "poofter", "poofters", "pooftah", "pooftahs",
+    "battyboy", "battyboys", "batty boy", "batty boys",
+    "battyman", "battymen", "batty man", "batty men",
+    "shirtlifter", "shirtlifters", "shirt lifter", "shirt lifters",
+    "fagboy", "fagboys", "fagbag", "fagbags", "faglord", "faglords",
+    "fagfucker", "fagfuckers", "faggotry",
+    "faggotboy", "faggotboys", "faggotlover", "faggotlovers",
+    "faggot lover", "faggot lovers",
+    "shemale", "shemales", "she-male", "she-males",
+    "trannyfucker", "trannyfuckers", "tranny lover", "tranny lovers"
+  ],
+  "Disability-related insults; medical or engineering words such as spastic and retard are absent": [
+    "spaz", "spazz", "spazzer", "spazzers", "spacker", "spackers",
+    "fucktard", "fucktards"
+  ],
+  "Further ethnic or homophobic abuse compounds; exact forms rather than broad roots": [
+    "niggerfucker", "niggerfuckers", "niggafucker", "niggafuckers",
+    "niggerfuck", "niggerfucks", "niggerfag", "niggerfags",
+    "nigganog", "nigganogs", "nignog", "nignogs",
+    "sand-nigger", "sand-niggers", "sand-nigga", "sand-niggas",
+    "rag-head", "rag-heads", "towel-head", "towel-heads",
+    "paki-basher", "paki-bashers", "pakibasher", "pakibashers",
+    "paki lover", "paki lovers", "pakilover", "pakilovers",
+    "chinklover", "chinklovers", "chinkfucker", "chinkfuckers",
+    "gooklover", "gooklovers", "gookfucker", "gookfuckers",
+    "kikefucker", "kikefuckers",
+    "fagface", "fagfaces", "faggotface", "faggotfaces",
+    "fagfuck", "fagfucks", "fag-fucker", "fag-fuckers",
+    "batty-boy", "batty-boys", "batty-man", "batty-men",
+    "shirt-lifter", "shirt-lifters", "poofterboy", "poofterboys",
+    "shemalefucker", "shemalefuckers"
+  ]
+}

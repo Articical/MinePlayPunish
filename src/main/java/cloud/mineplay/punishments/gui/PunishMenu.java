@@ -74,14 +74,20 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
     }
     cancel(player);
     if (!allowed(player)) return true;
-    if (args.length != 1 || args[0].isBlank()) {
-      error(player, "Use /punish <player|uuid>");
+    List<String> targets = new ArrayList<>();
+    boolean silent = false;
+    for (String arg : args) {
+      if (arg.equals("-s") || arg.equals("--silent")) silent = true;
+      else targets.add(arg);
+    }
+    if (targets.size() != 1 || targets.getFirst().isBlank() || targets.getFirst().startsWith("-")) {
+      error(player, "Use /punish <player|uuid> [-s]");
       return true;
     }
-    Session session = new Session(player, clock.instant().plus(LIFETIME));
+    Session session = new Session(player, clock.instant().plus(LIFETIME), silent);
     sessions.put(player.getUniqueId(), session);
     moderation
-        .resolve(player, args[0])
+        .resolve(player, targets.getFirst())
         .thenAccept(
             result -> {
               if (!current(session)) return;
@@ -147,7 +153,9 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
             "Community Service",
             serviceAvailable
                 ? "Choose a block amount"
-                : "Requires service permission and a validated quarry",
+                : Objects.requireNonNullElse(
+                    moderation.serviceUnavailableReason(session.player),
+                    "Community Service is currently unavailable"),
             serviceAvailable ? new Choice(Type.COMMUNITY_SERVICE, null) : null));
     buttons.add(
         new Button(
@@ -181,7 +189,9 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
     if (!moderation.availableService(session.player)) {
       error(
           session.player,
-          "Community Service is unavailable. Check permission and quarry validation.");
+          Objects.requireNonNullElse(
+              moderation.serviceUnavailableReason(session.player),
+              "Community Service is currently unavailable"));
       cancel(session.player);
       return;
     }
@@ -226,7 +236,15 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
     session.inventory = null;
     session.stage = Stage.MENU;
     session.pendingClick = false;
-    session.buttons = List.copyOf(buttons);
+    List<Button> displayed = new ArrayList<>(buttons);
+    displayed.add(
+        new Button(
+            24,
+            session.silent ? Material.GRAY_DYE : Material.BELL,
+            session.silent ? "Silent punishment" : "Public announcement",
+            session.silent ? "No public chat announcement" : "Announced in chat when confirmed",
+            null));
+    session.buttons = List.copyOf(displayed);
     Inventory opened =
         view.open(session.player, session.id, session.target, title, session.buttons);
     session.inventory = opened;
@@ -360,6 +378,7 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
             session.type,
             duration(session),
             reason,
+            session.silent,
             () -> current(session) && session.stage == Stage.SUBMITTING));
   }
 
@@ -401,6 +420,7 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
             session.actionId,
             blocks,
             input.reason(),
+            session.silent,
             () -> current(session) && session.stage == Stage.SUBMITTING));
   }
 
@@ -471,10 +491,14 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
   @Override
   public List<String> onTabComplete(
       CommandSender sender, Command command, String alias, String[] args) {
-    if (!(sender instanceof Player player)
-        || !player.hasPermission("mineplaypunishments.gui")
-        || args.length != 1) return List.of();
-    String prefix = args[0].toLowerCase(Locale.ROOT);
+    if (!(sender instanceof Player player) || !player.hasPermission("mineplaypunishments.gui"))
+      return List.of();
+    if (args.length == 2 && !args[0].startsWith("-"))
+      return List.of("-s", "--silent").stream().filter(s -> s.startsWith(args[1])).toList();
+    if (args.length != 1
+        && !(args.length == 2 && (args[0].equals("-s") || args[0].equals("--silent"))))
+      return List.of();
+    String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
     return Bukkit.getOnlinePlayers().stream()
         .filter(player::canSee)
         .map(Player::getName)
@@ -568,6 +592,7 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
     final UUID id = UUID.randomUUID();
     final UUID actionId = UUID.randomUUID();
     final Instant expires;
+    final boolean silent;
     Target target;
     Type type;
     DurationPreset preset;
@@ -577,9 +602,10 @@ public final class PunishMenu implements CommandExecutor, TabCompleter, Listener
     boolean pendingClick;
     Stage stage = Stage.RESOLVING;
 
-    Session(Player player, Instant expires) {
+    Session(Player player, Instant expires, boolean silent) {
       this.player = player;
       this.expires = expires;
+      this.silent = silent;
     }
   }
 }

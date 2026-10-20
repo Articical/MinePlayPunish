@@ -34,13 +34,54 @@ class MessagesTest {
         PlainTextComponentSerializer.plainText().serialize(messages().text("chat-filter-blocked")));
   }
 
+  @Test
+  void existingMessagesFileGetsAnnouncementFallbackWithoutBeingOverwritten() throws Exception {
+    Path file = writeMessages(null, null);
+    String original = Files.readString(file);
+    assertEquals(
+        "Mineplay » Moderator issued a warning to Target. Reason: Conduct [MP-TEST]",
+        announcement(messages()));
+    assertEquals(original, Files.readString(file));
+  }
+
+  @Test
+  void administratorAnnouncementTemplateIsPreservedAndUsed() throws Exception {
+    Path file =
+        writeMessages(null, "<green>[Staff] <actor> / <target> / <reason> / <reference></green>");
+    String original = Files.readString(file);
+    assertEquals("[Staff] Moderator / Target / Conduct / MP-TEST", announcement(messages()));
+    assertEquals(original, Files.readString(file));
+  }
+
+  private String announcement(Messages messages) {
+    return PlainTextComponentSerializer.plainText()
+        .serialize(
+            messages.text(
+                "punishment-announcement",
+                "actor",
+                "Moderator",
+                "action",
+                "issued a warning to",
+                "target",
+                "Target",
+                "reason",
+                "Conduct",
+                "reference",
+                "MP-TEST"));
+  }
+
   private Path writeMessages(String feedback) throws Exception {
+    return writeMessages(feedback, null);
+  }
+
+  private Path writeMessages(String feedback, String announcement) throws Exception {
     YamlConfiguration config;
     try (var stream = getClass().getResourceAsStream("/messages.yml")) {
       config = new YamlConfiguration();
       config.loadFromString(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
     }
     config.set("chat-filter-blocked", feedback);
+    config.set("punishment-announcement", announcement);
     Path file = folder.resolve("messages.yml");
     Files.writeString(file, config.saveToString());
     return file;

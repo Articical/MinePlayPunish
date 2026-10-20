@@ -11,6 +11,7 @@ import io.papermc.paper.event.connection.PlayerConnectionValidateLoginEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -136,7 +137,9 @@ public final class EnforcementListener implements Listener {
             (ignored, error) -> {
               if (error != null) plugin.logFailure("remember_player", error);
             });
-    enforcePlayer(player);
+    // A new session still needs a verified decision before admission. Existing sessions below
+    // instead wait for the next pass while a committed write is refreshing the cache.
+    enforcePlayer(player, true);
   }
 
   @EventHandler
@@ -146,8 +149,27 @@ public final class EnforcementListener implements Listener {
 
   public void enforceAll() {
     if (!plugin.punishments().healthy()) return;
-    for (Player player : Bukkit.getOnlinePlayers()) enforcePlayer(player);
+    for (Player player : Bukkit.getOnlinePlayers()) {
+      if (!plugin.punishments().healthy()) return;
+      enforcePlayer(player);
+    }
+    enforcePendingKicks(null);
+  }
+
+  /** Enforces a committed action for its target only. Must run on the server thread. */
+  public void enforce(UUID targetId) {
+    Objects.requireNonNull(targetId, "targetId");
+    if (!plugin.punishments().healthy()) return;
+    Player player = Bukkit.getPlayer(targetId);
+    if (player != null && player.isOnline()) enforcePlayer(player);
+    enforcePendingKicks(targetId);
+  }
+
+  private void enforcePendingKicks(UUID targetId) {
+    if (!plugin.punishments().healthy()) return;
     for (Punishment p : plugin.punishments().pendingKicks()) {
+      if (targetId != null && !targetId.equals(p.targetId())) continue;
+      if (!plugin.punishments().healthy()) return;
       if (kicksInFlight.contains(p.id())) continue;
       var deadline = plugin.punishments().kickDeadline(p.id());
       if (deadline.isEmpty() || !deadline.get().isAfter(Instant.now())) {
@@ -171,15 +193,17 @@ public final class EnforcementListener implements Listener {
                           kicksInFlight.remove(p.id());
                           return;
                         }
-                        if (!player.isOnline() || !deadline.get().isAfter(Instant.now())) {
-                          finishKick(p.id(), player.isOnline() ? "EXPIRED" : "FAILED");
+                        boolean sameSession = sameSession(player);
+                        if (!sameSession || !deadline.get().isAfter(Instant.now())) {
+                          finishKick(p.id(), sameSession ? "EXPIRED" : "FAILED");
                           return;
                         }
                         player.kick(plugin.messages().punishment("kick", p));
                         Bukkit.getScheduler()
                             .runTaskLater(
                                 plugin,
-                                () -> finishKick(p.id(), player.isOnline() ? "FAILED" : "EXECUTED"),
+                                () ->
+                                    finishKick(p.id(), sameSession(player) ? "FAILED" : "EXECUTED"),
                                 1L);
                       }));
     }
@@ -198,12 +222,27 @@ public final class EnforcementListener implements Listener {
                     }));
   }
 
+  private static boolean sameSession(Player player) {
+    return player.isOnline() && Bukkit.getPlayer(player.getUniqueId()) == player;
+  }
+
   private void enforcePlayer(Player player) {
+    enforcePlayer(player, false);
+  }
+
+  private void enforcePlayer(Player player, boolean joining) {
+    // A normal decision write invalidates the cache until refresh completes. Do not interpret
+    // that transient window as a reason to disconnect already admitted, unrelated players.
+    // Login and communication retain their separate fail-closed guards.
     if (!plugin.punishments().healthy()) {
-      player.kick(plugin.messages().text("storage-unavailable"));
+      if (joining) player.kick(plugin.messages().text("storage-unavailable"));
       return;
     }
     var ban = plugin.punishments().active(player.getUniqueId(), Type.BAN);
+    if (!plugin.punishments().healthy()) {
+      if (joining) player.kick(plugin.messages().text("storage-unavailable"));
+      return;
+    }
     if (ban.isPresent()) {
       player.kick(plugin.messages().punishment("ban", ban.get()));
       return;

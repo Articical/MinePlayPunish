@@ -29,7 +29,8 @@ Use `mineplaypunishments:<command>` when another plugin owns a conflicting short
 | `/service add <player> <blocks> <reason>` | `service.modify` |
 | `/service release <player> [reason]` | `service.release` |
 | `/service progress [player]` | Self: available; others: `service.progress.others` |
-| `/history [player]` | `history`; other targets also need `history.others` |
+| `/history [player] [--page number]` | `history`; other targets also need `history.others` |
+| `/warnings [player] [--page number]` (alias `/warns`) | `warnings` or `history`; other targets also need `warnings.others` or `history.others` |
 | `/checkban <player>` | `checkban` |
 | `/checkmute <player>` | `checkmute` |
 | `/mp acknowledge <punishment-uuid>` | Only the affected player, no staff authority |
@@ -46,6 +47,43 @@ and rank nodes default to false. Progress for self and acknowledging one's own w
 do not grant any ability to change a punishment. Console may run moderation commands;
 prison/quarry position setters require an in-game player and recovery requires the
 target online. `prison copyquarry` and either validation command also work from console.
+
+## Public announcements and silent commands
+
+Successful local punishment issues, bans/mutes being revoked, and Community Service
+issues/extensions/releases are announced in chat. Add `-s` or `--silent` anywhere
+among a mutation command's arguments to suppress the public announcement:
+
+```text
+/tempban Player 1d Griefing -s
+/warn Player Repeated harassment -s
+/service issue Player 250 Griefing -s
+/punish Player -s
+```
+
+The reason excludes the flag. Use `--` before a reason that literally contains
+`-s`, for example `/warn Player -- Do not use -s in public chat`. Silent mode does
+not suppress recordkeeping, target feedback, enforcement or website synchronization.
+The menu retains its mode throughout confirmation and shows it on each inventory
+screen. Read-only/admin commands do not accept a silent flag. Public wording comes
+from `punishment-announcement` in `messages.yml`; its placeholders are escaped and
+never include appeal links. A kick notice says it was issued; actual delivery is
+tracked separately. Remote website actions retain their existing behavior.
+
+## Warning records and history
+
+`/warn <player> <reason>` issues a warning. `/warnings [player]` and its `/warns`
+alias list only warning records, newest first, regardless of acknowledgement,
+expiry or revocation. `/history [player]` lists all punishment types, including
+`WARNING`. Both use ten-record pages and print a next-page command when needed;
+`/warnings Player --page 2` and `/history Player --page 2` show older records.
+Delivery and acknowledgement do not remove warning records.
+
+If Essentials or another plugin handles `/warn` or `/history`, explicitly use
+`/mineplaypunishments:warn`, `/mineplaypunishments:warnings` and
+`/mineplaypunishments:history`. This plugin cannot show a warning saved only by a
+different plugin. The original history/history.others permissions also authorize
+the corresponding warning views, so existing staff groups keep access.
 
 ## Prison, quarry and Community Service commands
 
@@ -76,7 +114,9 @@ block-count limits.
 Run `/punish <online player|known offline name|uuid>` to open a menu for one target.
 Offline names must be verified by an earlier login; supplying a UUID does not bypass
 the normal staff hierarchy or permission checks. The menu is for an in-game player;
-console retains the existing moderation commands.
+console retains the existing moderation commands. Add `-s` to the opening command
+for a silent confirmation. Disabled Community Service items display the specific
+failed permission, enabled setting, prison equipment or quarry readiness check.
 
 The `mineplaypunishments.gui` permission only grants access to the menu. It does not
 grant punishment authority. The selected action requires its usual node:

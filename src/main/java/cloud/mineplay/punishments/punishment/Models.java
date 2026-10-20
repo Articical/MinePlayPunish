@@ -2,6 +2,7 @@ package cloud.mineplay.punishments.punishment;
 
 import com.google.gson.JsonObject;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public final class Models {
@@ -56,6 +57,25 @@ public final class Models {
       Status status,
       long revision,
       String appealUrl) {}
+
+  /** A one-based page of complete historical records, independent of notification state. */
+  public record HistoryPage(List<Punishment> entries, int page, int pageSize, long total) {
+    public HistoryPage {
+      entries = List.copyOf(entries);
+    }
+
+    public boolean hasNext() {
+      return (long) page * pageSize < total;
+    }
+
+    public boolean hasPrevious() {
+      return page > 1;
+    }
+
+    public long totalPages() {
+      return Math.max(1, (total + pageSize - 1) / pageSize);
+    }
+  }
 
   public record Sentence(
       UUID id,

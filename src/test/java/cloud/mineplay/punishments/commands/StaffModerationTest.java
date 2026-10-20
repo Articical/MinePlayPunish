@@ -47,6 +47,7 @@ class StaffModerationTest {
   private CommunityServiceManager community;
   private EnforcementListener enforcement;
   private SyncClient sync;
+  private PunishmentAnnouncements announcements;
   private YamlConfiguration config;
   private StaffModeration gateway;
   private MockedStatic<Bukkit> bukkit;
@@ -65,6 +66,9 @@ class StaffModerationTest {
     community = mock(CommunityServiceManager.class);
     enforcement = mock(EnforcementListener.class);
     sync = mock(SyncClient.class);
+    announcements = mock(PunishmentAnnouncements.class);
+    when(plugin.announcements()).thenReturn(announcements);
+    when(actor.getName()).thenReturn("Moderator");
     Messages messages = mock(Messages.class);
     config = new YamlConfiguration();
     for (String type : List.of("bans", "mutes", "warnings", "kicks"))
@@ -126,10 +130,62 @@ class StaffModerationTest {
     gateway = new StaffModeration(plugin, Clock.fixed(now, ZoneOffset.UTC));
   }
 
+  @Test
+  void silentFlagIsImmutableAcrossConfirmationRetriesAndOnlyTargetIsEnforced() {
+    UUID confirmation = UUID.randomUUID();
+    Result result =
+        gateway
+            .submit(actor, targetId, confirmation, Type.BAN, null, "Test", true, () -> true)
+            .join();
+    assertTrue(result.applied());
+    assertSame(
+        result,
+        gateway
+            .submit(actor, targetId, confirmation, Type.BAN, null, "Test", true, () -> true)
+            .join());
+    assertEquals(
+        "REPLAY_MISMATCH",
+        gateway
+            .submit(actor, targetId, confirmation, Type.BAN, null, "Test", false, () -> true)
+            .join()
+            .code());
+    verify(announcements).announce(writtenActions.getFirst(), result, "Moderator", true);
+    verify(enforcement).enforce(targetId);
+    verify(enforcement, never()).enforceAll();
+  }
+
+  @Test
+  void serviceAvailabilityExplainsTheActualFailureAndAcceptsConfiguredQuarry() {
+    assertTrue(gateway.serviceUnavailableReason(actor).contains("permission"));
+    permissions.add("mineplaypunishments.service.issue");
+    assertNull(gateway.serviceUnavailableReason(actor));
+    assertTrue(gateway.availableService(actor));
+    when(community.ready()).thenReturn(false);
+    assertTrue(gateway.serviceUnavailableReason(actor).contains("quarry"));
+    when(community.ready()).thenReturn(true);
+    config.set("community-service.enabled", false);
+    assertTrue(gateway.serviceUnavailableReason(actor).contains("disabled"));
+    config.set("community-service.enabled", true);
+    config.set("community-service.equipment.default-pickaxe", "IRON_PICKAXE");
+    assertTrue(gateway.serviceUnavailableReason(actor).contains("pickaxe"));
+  }
+
   @AfterEach
   void tearDown() {
     hierarchy.close();
     bukkit.close();
+  }
+
+  @Test
+  void announcementFailureDoesNotLeaveCommittedGuiSubmissionPending() {
+    doThrow(new IllegalStateException("broadcast failure"))
+        .when(announcements)
+        .announce(any(), any(), anyString(), anyBoolean());
+    var result = gateway.submit(actor, targetId, UUID.randomUUID(), Type.BAN, null, "Test");
+    assertTrue(result.isDone());
+    assertTrue(result.join().applied());
+    verify(plugin).logFailure(eq("gui_announcement"), any(IllegalStateException.class));
+    verify(store, times(1)).apply(any());
   }
 
   @Test
@@ -167,7 +223,7 @@ class StaffModerationTest {
     assertEquals("Griefing spawn", action.payload().get("reason").getAsString());
     assertFalse(action.payload().has("expiresAt"));
     assertEquals(now, action.issuedAt());
-    verify(enforcement).enforceAll();
+    verify(enforcement).enforce(targetId);
     verify(sync).trigger();
   }
 
@@ -424,7 +480,7 @@ class StaffModerationTest {
     assertEquals(targetId, action.targetId());
     assertEquals(Source.IN_GAME, action.source());
     assertNull(action.validUntil());
-    verify(enforcement).enforceAll();
+    verify(enforcement).enforce(targetId);
     verify(sync).trigger();
   }
 
@@ -647,7 +703,7 @@ class StaffModerationTest {
 
   @Test
   void postCommitEnforcementFailureStillCompletesAndDoesNotLeaveSubmissionInFlight() {
-    doThrow(new IllegalStateException("enforcement failure")).when(enforcement).enforceAll();
+    doThrow(new IllegalStateException("enforcement failure")).when(enforcement).enforce(targetId);
     UUID confirmation = UUID.randomUUID();
     CompletableFuture<Result> completed =
         gateway.submit(actor, targetId, confirmation, Type.BAN, null, "Test");

@@ -1,5 +1,10 @@
 # Public chat filter
 
+A ready-to-use [UK adult-community preset](chat-filter-uk-adult.md) allows ordinary
+swearing and adds a reviewed word list, selected evasion rules and UK
+false-positive tests. It includes the Minecraft/Xbox policy distinctions and
+installation instructions for existing 1.1.0 servers.
+
 The filter cancels public Paper chat messages that match your configured literal or
 regex rules. The sender receives a generic message that you can change in
 `messages.yml`. It does not issue warnings, mutes, kicks or other punishments.

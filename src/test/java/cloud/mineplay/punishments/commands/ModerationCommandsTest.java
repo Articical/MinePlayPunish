@@ -15,6 +15,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +27,8 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 class ModerationCommandsTest {
@@ -69,6 +73,8 @@ class ModerationCommandsTest {
     when(plugin.messages()).thenReturn(mock(Messages.class));
     when(plugin.enforcement()).thenReturn(mock(EnforcementListener.class));
     when(plugin.sync()).thenReturn(mock(SyncClient.class));
+    when(plugin.announcements()).thenReturn(mock(PunishmentAnnouncements.class));
+    when(sender.getName()).thenReturn("Console");
     doAnswer(
             call -> {
               call.<Runnable>getArgument(0).run();
@@ -81,6 +87,7 @@ class ModerationCommandsTest {
     when(service.resolve(target.toString()))
         .thenReturn(CompletableFuture.completedFuture(Optional.of(target)));
     when(service.find(punishment.id())).thenReturn(Optional.of(punishment));
+    when(service.active(eq(target), any(Type.class))).thenReturn(Optional.of(punishment));
     when(service.sentence(target))
         .thenReturn(
             Optional.of(
@@ -105,6 +112,147 @@ class ModerationCommandsTest {
     try (var ignored = mockStatic(Bukkit.class)) {
       commands.onCommand(sender, command, root, args);
     }
+  }
+
+  private void invokeLine(String line) {
+    String[] tokens = Arguments.tokens(line.replace("TARGET", target.toString()));
+    invoke(tokens[0], Arrays.copyOfRange(tokens, 1, tokens.length));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "ban TARGET Reason",
+        "tempban TARGET 1h Reason",
+        "mute TARGET Reason",
+        "tempmute TARGET 1h Reason",
+        "warn TARGET Reason",
+        "kick TARGET Reason",
+        "unban TARGET Reason",
+        "unmute TARGET Reason",
+        "service TARGET 100 Reason",
+        "service issue TARGET 100 Reason",
+        "service add TARGET 100 Reason",
+        "service release TARGET Reason"
+      })
+  void appliedLocalMutationsAnnounceByDefaultAndOnlyEnforceTheirTarget(String line) {
+    invokeLine(line);
+    var action = ArgumentCaptor.forClass(Action.class);
+    verify(service).apply(action.capture());
+    verify(plugin.announcements())
+        .announce(eq(action.getValue()), any(Result.class), eq("Console"), eq(false));
+    assertFalse(action.getValue().payload().has("silent"));
+    verify(plugin.enforcement()).enforce(target);
+    verify(plugin.enforcement(), never()).enforceAll();
+    verify(plugin.sync()).trigger();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "warn -s TARGET Reason",
+        "warn TARGET --silent Reason",
+        "warn TARGET Reason -s",
+        "service -s issue TARGET 100 Reason",
+        "service issue --silent TARGET 100 Reason",
+        "service issue TARGET 100 Reason -s",
+        "service TARGET 100 --silent Reason",
+        "service -s add TARGET 100 Reason",
+        "service release TARGET Reason --silent"
+      })
+  void silentSwitchIsTransientAndPreservesEnforcementAndReason(String line) {
+    invokeLine(line);
+    var action = ArgumentCaptor.forClass(Action.class);
+    verify(service).apply(action.capture());
+    verify(plugin.announcements())
+        .announce(eq(action.getValue()), any(Result.class), eq("Console"), eq(true));
+    assertFalse(action.getValue().payload().has("silent"));
+    assertEquals("Reason", action.getValue().payload().get("reason").getAsString());
+    verify(plugin.enforcement()).enforce(target);
+    verify(plugin.sync()).trigger();
+  }
+
+  @Test
+  void literalSilentTextAfterTerminatorDoesNotSuppressAnnouncement() {
+    invoke("warn", target.toString(), "--", "-s", "--silent");
+    var action = ArgumentCaptor.forClass(Action.class);
+    verify(service).apply(action.capture());
+    assertEquals("-s --silent", action.getValue().payload().get("reason").getAsString());
+    verify(plugin.announcements()).announce(any(), any(), eq("Console"), eq(false));
+  }
+
+  @Test
+  void commitMustFinishAndCallbackMustReachMainThreadBeforeAnnouncement() {
+    CompletableFuture<Result> pending = new CompletableFuture<>();
+    when(service.apply(any())).thenReturn(pending);
+    when(sender.getName()).thenReturn("Original actor");
+    invoke("warn", target.toString(), "Reason");
+    verifyNoInteractions(plugin.announcements());
+    ArrayDeque<Runnable> main = new ArrayDeque<>();
+    doAnswer(
+            call -> {
+              main.add(call.getArgument(0));
+              return null;
+            })
+        .when(plugin)
+        .onMain(any());
+    when(sender.getName()).thenReturn("Changed actor");
+    pending.complete(new Result(true, "APPLIED", "saved", punishment));
+    verifyNoInteractions(plugin.announcements());
+    assertEquals(1, main.size());
+    main.removeFirst().run();
+    verify(plugin.announcements()).announce(any(), any(), eq("Original actor"), eq(false));
+    verify(sender, times(1)).getName();
+  }
+
+  @Test
+  void failedCommitNeverAnnouncesOrEnforces() {
+    when(service.apply(any()))
+        .thenReturn(
+            CompletableFuture.failedFuture(new IllegalStateException("storage unavailable")));
+    invoke("warn", target.toString(), "Reason");
+    verifyNoInteractions(plugin.announcements(), plugin.enforcement());
+    verify(plugin.sync(), never()).trigger();
+  }
+
+  @Test
+  void rejectedCommitNeverAnnouncesOrEnforces() {
+    when(service.apply(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(new Result(false, "STALE", "stale revision", null)));
+    invoke("warn", target.toString(), "Reason");
+    verifyNoInteractions(plugin.announcements(), plugin.enforcement());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"enforcement", "sync"})
+  void postCommitFailuresRemainSavedAndDoNotSuppressAnnouncement(String operation) {
+    RuntimeException failure = new IllegalStateException("post-commit failure");
+    var enforcement = plugin.enforcement();
+    var sync = plugin.sync();
+    if (operation.equals("enforcement")) doThrow(failure).when(enforcement).enforce(target);
+    else doThrow(failure).when(sync).trigger();
+    invoke("warn", target.toString(), "Reason");
+    verify(plugin).logFailure("moderation_post_commit_" + operation, failure);
+    verify(plugin.messages()).text("success", "message", "MP-TEST saved.");
+    verify(plugin.enforcement()).enforce(target);
+    verify(plugin.sync()).trigger();
+    verify(plugin.announcements()).announce(any(), any(), eq("Console"), eq(false));
+  }
+
+  @Test
+  void appealRotationDoesNotAnnounce() {
+    invoke("mp", "appeal", punishment.id().toString(), "--rotate");
+    verify(service).apply(argThat(action -> action.type() == ActionType.ROTATE_APPEAL_TOKEN));
+    verifyNoInteractions(plugin.announcements());
+  }
+
+  @Test
+  void serviceProgressRejectsParentSilentOptionWithoutReadingOrMutating() {
+    invoke("service", "--silent", "progress", target.toString());
+    verify(service, never()).resolve(anyString());
+    verify(service, never()).apply(any());
+    verify(quarry, never()).progress(any());
   }
 
   @Test

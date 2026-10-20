@@ -1,0 +1,333 @@
+# UK adult-server benign regression corpus. One message per non-comment line.
+# These fixtures cover allowed context, not a guarantee that a keyword filter understands intent.
+# Quoted slurs, reclaimed slurs, ambiguous personal insults and borderline threats need manual review.
+# Do not add quoted abusive sentences here merely because the speaker says they are quoting them.
+
+# Ordinary UK conversation and place names.
+Morning everyone, kettle is on.
+Anyone fancy a brew before the raid?
+Cheers mate, that was a lovely build.
+I'm popping to the chippy and then I'll be back.
+The bin lorry woke me up at six again.
+It is absolutely chucking it down in Manchester.
+The train from Birmingham has been cancelled.
+Scunthorpe United are playing this weekend.
+I grew up near Scunthorpe.
+SCUNTHORPE is the name on the station sign.
+The walk from Penistone station is lovely.
+Penistone has a community cinema.
+My grandparents live in Cockermouth.
+We stopped for lunch in Cockermouth.
+The Essex coast is lovely this time of year.
+Middlesex appears in the old address.
+Sussex has some beautiful villages.
+We are driving through Cumbria on Friday.
+I booked a weekend in Dorking.
+Cockfosters is on the Piccadilly line.
+The village is called Shitterton.
+I visited the Wank mountain in Bavaria.
+The River Niger runs through West Africa.
+Niger and Nigeria are different countries.
+The geography quiz asked for the capital of Niger.
+My friend is from Nigeria.
+The Nigerian team played brilliantly.
+Nigel is organising the next community event.
+Nikhil helped me finish the roof.
+Nikita said the server would restart at midnight.
+The surname on that book is Dickinson.
+My friend Dick is joining us later.
+
+# Common adult profanity without harassment or protected-class abuse.
+Oh shit, I forgot to bring a bed.
+Shit happens, we can rebuild it.
+That creeper scared the shit out of me.
+The weather is bloody awful.
+Bloody hell, that is a big castle.
+Fuck, I fell into the lava again.
+For fuck's sake, I left the diamonds at home.
+That was fucking brilliant.
+The redstone is fucked again.
+What a load of bollocks.
+Bollocks, I missed the train.
+Bugger, the kettle has broken.
+Well, bugger me, the farm finally works.
+I can't be arsed to dig another tunnel tonight.
+That was a pain in the arse.
+I've made a right arse of the roof.
+The bastard creeper blew up my chest.
+That boss fight was a bastard.
+I am pissed off with this lag.
+It is pissing down outside.
+Taking the piss out of my own terrible building again.
+I was a complete wanker for forgetting the backup.
+What a crap spawn location.
+This pickaxe is bloody useless.
+The whole thing went tits up after the restart.
+I made a cock-up of the coordinates.
+Stop the faffing and put the kettle on.
+Sod it, let's try the other tunnel.
+That was a damn good attempt.
+Hell of a view from up here.
+The mobs gave me a proper bollocking.
+
+# Substrings, punctuation, spelling and ordinary words.
+The classroom needs another bookshelf.
+My assignment is due on Monday.
+Please assign the new plots before tonight.
+The class assignment is about medieval history.
+The grass path goes past the glass house.
+We need a brass bell over the doorway.
+I passed the assessment this morning.
+That is a classic example of a compass rose.
+The assassin character is part of the adventure map.
+The grape harvest was good this year.
+I planted grape vines beside the pergola.
+Rapeseed oil is on the shopping list.
+Those yellow fields are flowering rapeseed.
+The cockpit windows need cleaning.
+The cockerel wakes us up at sunrise.
+Cockatiels are lovely little birds.
+We saw a woodcock on our walk.
+The peacock is wandering around the garden.
+I need a new stopcock for the kitchen.
+The shuttlecock landed on the shed.
+The cocktail menu has alcohol-free options.
+My knitting project is a pair of mittens.
+The knight has a shield and a horse.
+The black knight guards the castle entrance.
+Goodnight everyone, see you tomorrow.
+There was a little snigger at my terrible pun.
+The children were sniggering at the joke.
+I packed spare knickers for the trip.
+The knickerbocker glory looked enormous.
+The mechanic will retard the ignition timing.
+We need to retard timing by two degrees.
+The coating is designed to retard the spread of fire.
+The physiotherapist discussed muscle spasticity.
+Spasticity can affect movement and comfort.
+The clinician described spastic diplegia in the report.
+The kitchen is spic and span.
+Everything was left spick and span after the event.
+There is a chink in the armour of that strategy.
+A chink of light came through the curtains.
+The farmer repaired the drainage dyke.
+We walked along the sea dyke at sunset.
+The geological map shows a volcanic dyke.
+I'm stepping outside for a fag break.
+He bought a packet of fags at the corner shop.
+The pub serves faggots and peas on Thursdays.
+Faggots and mash is a traditional dish.
+The menu describes pork faggots with onion gravy.
+The old recipe calls for a bundle of sticks.
+
+# Routine Minecraft and gaming language.
+Can someone help me kill the wither?
+I need to kill a few zombies for the challenge.
+The kill counter is stuck at zero.
+The mob grinder has stopped working.
+That was a clean headshot on the skeleton.
+I'll shoot the target block from the tower.
+We are building a shooting range for bows.
+The trap kills hostile mobs and collects their drops.
+The villager died before I could heal him.
+I keep dying to fall damage.
+Do not hit the iron golem.
+Attack the boss after the shield drops.
+The next wave is spawning on the left.
+I will destroy this old cobblestone wall.
+We need to blow up the abandoned quarry with TNT.
+The explosion is part of the adventure-map puzzle.
+Please set the difficulty to hard.
+That server has hardcore survival enabled.
+The spawn protection radius is too large.
+Can I claim the plot beside the church?
+The prison quarry needs more stone.
+Community service progress is ten out of ten.
+The pickaxe needs an efficiency enchantment.
+The enchantment table is inside the library.
+I trapped the creeper in a boat.
+The piglins keep stealing my attention.
+I need leather from cows, not from horses.
+The sheep pen needs a gate.
+The team colours are black and white.
+My character has a black cloak and a white shield.
+The mod pack contains a vampire class.
+The ninja skin came from the costume event.
+The samurai armour looks great.
+The witch farm is over the swamp.
+Let's build a pirate ship and a fishing dock.
+The survival guide says to bring spare torches.
+The chat command is slash help.
+Can you ban that spam bot, please?
+Please report griefing instead of starting an argument.
+
+# Ordinary numbers, spaced identifiers, coordinates and names.
+I have 88 cobblestone left.
+The build uses 1488 stone bricks.
+1337 was my old high score.
+The address ends in house number 88.
+The invoice total is 1488 pounds.
+Meet me at X 1488, Y 64, Z -88.
+The chest is at x=88 and z=1337.
+The answer is 14 plus 88 equals 102.
+We counted 1,488 blocks in the wall.
+I need 8 gold ingots and 8 iron ingots.
+My hotbar has slots 1 2 3 4 5 6 7 8 9.
+The sign says N 1 G because it labels a storage row.
+Use aisle A, shelf 4, box S, compartment 5.
+Player88 has donated the last stack of stone.
+Builder1337 finished the station.
+The seed is 14881337.
+Room 69 is on the second floor.
+The temperature is minus 4 degrees.
+Version 1.21 changed our old setup.
+The train leaves at 14:88 in this broken clock texture.
+That scoreboard should read 8 / 8.
+The recipe needs 1 apple, 4 eggs and 8 carrots.
+
+# Legitimate religion, nationality, ethnicity and identity.
+I'm Jewish and I celebrate Hanukkah with my family.
+Our Jewish community centre is holding an open day.
+The synagogue has a beautiful stained-glass window.
+My Muslim neighbour helped me move the furniture.
+I'm Muslim and I am fasting for Ramadan.
+The mosque is hosting a charity collection.
+Eid Mubarak to everyone celebrating.
+Is the food at the event halal?
+We need a kosher option for the meal.
+My Sikh friend is helping with the fundraiser.
+The gurdwara runs a community kitchen.
+I'm Hindu and my family celebrates Diwali.
+Happy Diwali to everyone on the server.
+Our Christian group meets on Sundays.
+The cathedral build needs another bell tower.
+The Buddhist temple has a lovely garden.
+I'm an atheist, but I enjoy learning about religions.
+My parents are from Pakistan.
+The Pakistani cricket team played well.
+We are cooking Pakistani food for the fundraiser.
+My family is Indian and British.
+My friend is Bengali.
+The Chinese supermarket has the noodles I wanted.
+We are going to a Chinese restaurant after work.
+The Japanese garden needs a small bridge.
+The Korean language class starts at seven.
+The museum has an exhibition about Romani history.
+Irish Travellers have a distinct cultural history.
+My Scottish grandmother taught me that recipe.
+The Welsh language sign needs correcting.
+I'm Black and British.
+The Black history exhibition opens tomorrow.
+The white paint is in the chest beside the black wool.
+The accessibility group welcomes disabled players.
+I'm autistic and prefer clear written instructions.
+My friend has ADHD and uses reminders.
+The player with a wheelchair skin designed the station.
+
+# LGBT identities, relationships and inclusive discussion.
+I'm gay and my husband plays here too.
+My lesbian friend is designing the town hall.
+I'm bisexual and I appreciate the welcoming community.
+I'm queer and this is my favourite server.
+The queer history reading group meets on Thursdays.
+I'm a trans man and I use he/him pronouns.
+I'm a trans woman and I use she/her pronouns.
+My transgender friend is joining the build competition.
+I'm nonbinary and I use they/them.
+The LGBT charity is running a fundraiser.
+LGBTQ players are welcome at the event.
+Happy Pride, everyone.
+My boyfriend and I built that cottage.
+My girlfriend is much better at redstone than me.
+My husband lost all our diamonds in the Nether.
+My wife is the mayor of our little town.
+Please use the pronouns people ask you to use.
+Homophobia and transphobia are not welcome here.
+We should report antisemitism and Islamophobia.
+The discussion is about tackling racism, not attacking anyone.
+
+# Adult sexual health, anatomy, consent and safeguarding context.
+The sexual health clinic offers confidential appointments.
+The article explains contraception and safer sex.
+We were discussing consent in an adult relationship.
+Condoms help reduce the risk of some sexually transmitted infections.
+My GP referred me for an STI test.
+The nurse explained how HIV testing works.
+The charity supports people living with HIV.
+The appointment is for a routine cervical screening.
+The leaflet discusses breast cancer awareness.
+Men can get breast cancer too.
+The health article explains testicular self-examination.
+The patient information leaflet mentions the penis and urethra.
+The anatomy diagram labels the vagina and cervix.
+The nurse answered questions about genital health.
+The clinic provides advice about anal fissures.
+The pharmacist explained the difference between analgesics.
+The article is about erectile dysfunction treatment.
+The leaflet explains menopause symptoms.
+The class covered pregnancy and reproductive health.
+My partner and I are discussing fertility treatment.
+Sex education should include consent and respect.
+The support service helps survivors of sexual assault.
+The rape crisis charity offers confidential support.
+Please do not make jokes about sexual assault.
+Child sexual abuse is a crime; report safeguarding concerns.
+The charity works to prevent child exploitation.
+The discussion is about preventing harassment at work.
+Nobody should be pressured into sending private photographs.
+
+# Neutral historical, moderation and wellbeing discussion.
+The museum exhibit explains Nazi Germany.
+The history lesson covered Hitler's rise to power.
+We are studying how fascism spread in Europe.
+The documentary discusses the Holocaust respectfully.
+The memorial honours victims of genocide.
+The school project is about the civil rights movement.
+The community rules prohibit hate speech.
+Please send the moderators evidence of harassment.
+Do not post another player's personal information.
+We should remove doxxing attempts from chat.
+The suicide prevention charity is running a fundraiser.
+I'm taking a break because my mental health matters.
+The counsellor helped me through a difficult week.
+I hope everyone gets home safely tonight.
+This discussion needs a moderator, not a pile-on.
+Let's disagree without insulting each other.
+The rules apply to staff as well as players.
+Thanks for keeping the community welcoming.
+
+# Additional ambiguity and safety-warning regressions.
+I felt like a right twat after forgetting the backup.
+I was being a bellend about my own terrible roof.
+I've made an arsehole of myself by reading the map upside down.
+The radio volume knob is broken.
+Poof! The magician disappeared in a cloud of smoke.
+There was a poof of smoke from the stage prop.
+My Maine Coon cat keeps sitting on the keyboard.
+The Maine Coon kitten is asleep again.
+Kike is a familiar form of the Spanish name Enrique.
+Our holiday cottage is near Troon.
+The train to Troon leaves in twenty minutes.
+The mechanic checked the tranny fluid in the old car.
+I've got a wet back from carrying that leaking water bottle.
+The rain left us with wet backs and muddy boots.
+The stove manual describes the wetback water-heating attachment.
+The broken zipper head needs replacing.
+The repair kit includes spare zipper heads.
+The documentary follows a professional camel jockey.
+Camel jockeys take part in organised racing.
+There is some sticky gook left on the old label.
+Never send nudes to strangers.
+Do not send me nudes or explicit photographs.
+Please don't send dick pics to people who haven't consented.
+Never give me your password, even if someone claims to be staff.
+Do not send me your password; moderators never need it.
+Never send me your recovery code or verification code.
+Staff will never ask you to send me your password.
+Someone threatening to dox you should be reported immediately.
+If anyone says they will doxx you, contact the moderators.
+Nobody has the right to threaten to rape you.
+If someone threatens to kill you in real life, take it seriously and seek help.
+Nobody should say they hope you get cancer.
+Is she male?
+I bought a towel head wrap.

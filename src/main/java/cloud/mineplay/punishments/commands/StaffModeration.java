@@ -48,16 +48,19 @@ public final class StaffModeration {
       Type type,
       Duration duration,
       String reason,
-      ServiceWork serviceWork) {}
+      ServiceWork serviceWork,
+      boolean silent) {}
 
   private static final class Submission {
     private final Request request;
+    private final String actorName;
     private CompletableFuture<Result> completion = new CompletableFuture<>();
     private Action action;
     private boolean retryable;
 
-    private Submission(Request request) {
+    private Submission(Request request, String actorName) {
       this.request = request;
+      this.actorName = actorName;
     }
   }
 
@@ -89,13 +92,18 @@ public final class StaffModeration {
 
   /** Community Service has a separate entry point so it cannot be issued without a block count. */
   public boolean availableService(Player actor) {
+    return serviceUnavailableReason(actor) == null;
+  }
+
+  /** The same admission checks as submission, with the specific reason for a disabled GUI item. */
+  public String serviceUnavailableReason(Player actor) {
     requireMainThread();
     try {
       checkAccess(actor);
       checkService(actor, plugin.settings().minimumBlocks());
-      return true;
+      return null;
     } catch (Refused refusal) {
-      return false;
+      return refusal.getMessage();
     }
   }
 
@@ -219,6 +227,18 @@ public final class StaffModeration {
       Duration duration,
       String reason,
       BooleanSupplier stillValid) {
+    return submit(actor, target, actionId, type, duration, reason, false, stillValid);
+  }
+
+  public CompletableFuture<Result> submit(
+      Player actor,
+      UUID target,
+      UUID actionId,
+      Type type,
+      Duration duration,
+      String reason,
+      boolean silent,
+      BooleanSupplier stillValid) {
     requireMainThread();
     Request request;
     try {
@@ -228,7 +248,8 @@ public final class StaffModeration {
         throw refused("INVALID_ACTION", "A target UUID and confirmation UUID are required");
       checkSession(stillValid);
       request =
-          new Request(actor.getUniqueId(), target, type, duration, checkedReason(reason), null);
+          new Request(
+              actor.getUniqueId(), target, type, duration, checkedReason(reason), null, silent);
     } catch (Refused refusal) {
       return immediateFailure(actor, refusal.code, refusal.getMessage());
     }
@@ -245,6 +266,17 @@ public final class StaffModeration {
       int blocks,
       String reason,
       BooleanSupplier stillValid) {
+    return submitService(actor, target, actionId, blocks, reason, false, stillValid);
+  }
+
+  public CompletableFuture<Result> submitService(
+      Player actor,
+      UUID target,
+      UUID actionId,
+      int blocks,
+      String reason,
+      boolean silent,
+      BooleanSupplier stillValid) {
     requireMainThread();
     Request request;
     try {
@@ -260,7 +292,8 @@ public final class StaffModeration {
               Type.COMMUNITY_SERVICE,
               null,
               checkedReason(reason),
-              new ServiceWork(blocks, tool));
+              new ServiceWork(blocks, tool),
+              silent);
     } catch (Refused refusal) {
       return immediateFailure(actor, refusal.code, refusal.getMessage());
     }
@@ -285,7 +318,7 @@ public final class StaffModeration {
     if (!makeRoom())
       return immediateFailure(
           actor, "BUSY", "Too many moderation requests are awaiting confirmation; retry shortly");
-    Submission submission = new Submission(request);
+    Submission submission = new Submission(request, actor.getName());
     submissions.put(actionId, submission);
     authorizeSubmission(actor, actionId, submission, stillValid);
     return submission.completion;
@@ -358,11 +391,25 @@ public final class StaffModeration {
                                         }
                                         if (result.applied()) {
                                           try {
-                                            plugin.enforcement().enforceAll();
+                                            plugin
+                                                .enforcement()
+                                                .enforce(submission.request.target());
                                             plugin.sync().trigger();
                                           } catch (RuntimeException enforcementFailure) {
                                             plugin.logFailure(
                                                 "gui_post_commit_enforcement", enforcementFailure);
+                                          }
+                                          try {
+                                            plugin
+                                                .announcements()
+                                                .announce(
+                                                    submission.action,
+                                                    result,
+                                                    submission.actorName,
+                                                    submission.request.silent());
+                                          } catch (RuntimeException announcementFailure) {
+                                            plugin.logFailure(
+                                                "gui_announcement", announcementFailure);
                                           }
                                         }
                                         finishSubmission(actor, submission, result);

@@ -3,6 +3,7 @@ package cloud.mineplay.punishments;
 import cloud.mineplay.punishments.chat.ChatFilter;
 import cloud.mineplay.punishments.chat.ChatFilterListener;
 import cloud.mineplay.punishments.commands.ModerationCommands;
+import cloud.mineplay.punishments.commands.PunishmentAnnouncements;
 import cloud.mineplay.punishments.communityservice.CommunityServiceManager;
 import cloud.mineplay.punishments.config.Messages;
 import cloud.mineplay.punishments.config.PluginSettings;
@@ -26,6 +27,7 @@ public final class MineplayPunishments extends JavaPlugin {
   private EnforcementListener enforcement;
   private SyncClient sync;
   private PunishMenu menus;
+  private PunishmentAnnouncements announcements;
   private ChatFilterListener chatFilter;
   private PluginSettings settings;
   private volatile Messages messages;
@@ -44,6 +46,7 @@ public final class MineplayPunishments extends JavaPlugin {
       }
       settings = PluginSettings.read(getConfig(), getDataFolder().toPath());
       messages = new Messages(this);
+      announcements = new PunishmentAnnouncements(this);
       chatFilter = new ChatFilterListener(this, initialFilter);
       database = new Database(settings.database());
       database.initialize();
@@ -240,6 +243,10 @@ public final class MineplayPunishments extends JavaPlugin {
 
   public Messages messages() {
     return messages;
+  }
+
+  public PunishmentAnnouncements announcements() {
+    return announcements;
   }
 
   public PunishmentService punishments() {

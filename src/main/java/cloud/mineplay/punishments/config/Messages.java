@@ -18,6 +18,9 @@ public final class Messages {
   private final MiniMessage mini = MiniMessage.miniMessage();
   private static final String CHAT_FILTER_BLOCKED =
       "<red>Your message was blocked by the chat filter. Please rephrase it.</red>";
+  private static final String PUNISHMENT_ANNOUNCEMENT =
+      "<gold>Mineplay</gold> <dark_gray>»</dark_gray> <yellow><actor> <action> <target>.</yellow>"
+          + " <gray>Reason: <white><reason></white> [<reference>]</gray>";
 
   public Messages(JavaPlugin plugin) {
     File file = new File(plugin.getDataFolder(), "messages.yml");
@@ -48,7 +51,12 @@ public final class Messages {
     for (int i = 0; i + 1 < replacements.length; i += 2)
       tags.resolver(Placeholder.unparsed(replacements[i], replacements[i + 1]));
     // Existing installations keep their messages.yml when upgrading.
-    String fallback = key.equals("chat-filter-blocked") ? CHAT_FILTER_BLOCKED : key;
+    String fallback =
+        switch (key) {
+          case "chat-filter-blocked" -> CHAT_FILTER_BLOCKED;
+          case "punishment-announcement" -> PUNISHMENT_ANNOUNCEMENT;
+          default -> key;
+        };
     return mini.deserialize(templates.getOrDefault(key, fallback), tags.build());
   }
 

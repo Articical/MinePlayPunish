@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import cloud.mineplay.punishments.punishment.Models.Action;
 import cloud.mineplay.punishments.punishment.Models.ActionType;
+import cloud.mineplay.punishments.punishment.Models.HistoryPage;
 import cloud.mineplay.punishments.punishment.Models.Punishment;
 import cloud.mineplay.punishments.punishment.Models.Result;
 import cloud.mineplay.punishments.punishment.Models.Source;
@@ -17,6 +18,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -213,6 +216,149 @@ class PunishmentServiceTest {
     assertTrue(service.pendingWarnings(player).join().isEmpty());
     service.expire().join();
     assertEquals(1, count("punishments"));
+  }
+
+  @Test
+  void deliveredAndAcknowledgedWarningRemainsInBothHistoryViewsAfterRestart() throws Exception {
+    Punishment warning = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    assertEquals(List.of(warning), service.warnings(player).join());
+    service.markWarningDelivered(warning.id()).join();
+    service.acknowledgeWarning(player, warning.id()).join();
+    Punishment acknowledged = service.find(warning.id()).orElseThrow();
+    assertEquals(Status.ACTIVE, acknowledged.status());
+    assertEquals(3, acknowledged.revision());
+    assertTrue(service.pendingWarnings(player).join().isEmpty());
+    assertEquals(List.of(acknowledged), service.history(player).join());
+    assertEquals(List.of(acknowledged), service.warnings(player).join());
+    restart();
+    assertEquals(List.of(acknowledged), service.history(player).join());
+    assertEquals(List.of(acknowledged), service.warnings(player, 1, 10).join().entries());
+    assertTrue(service.pendingWarnings(player).join().isEmpty());
+    assertEquals("DELIVERED", value("SELECT delivery_state FROM pending_notifications"));
+    assertNotNull(value("SELECT acknowledged_at FROM pending_notifications"));
+  }
+
+  @Test
+  void warningHistoryIncludesMultipleActiveExpiredAndRevokedRecordsOnlyForTarget()
+      throws Exception {
+    JsonObject timed = reason();
+    timed.addProperty("expiresAt", clock.instant().plusSeconds(30).toString());
+    Punishment expiring = applied(create(ActionType.CREATE_WARNING, timed)).punishment();
+    clock.advance(1);
+    Punishment revoked = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    applied(modify(ActionType.REVOKE_PUNISHMENT, revoked, reason()));
+    clock.advance(1);
+    Punishment active = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    applied(create(ActionType.CREATE_BAN, reason()));
+    UUID other = UUID.randomUUID();
+    applied(
+        new Action(
+            UUID.randomUUID(),
+            ActionType.CREATE_WARNING,
+            other,
+            "Alex",
+            null,
+            null,
+            "Console",
+            Source.CONSOLE,
+            clock.instant(),
+            null,
+            reason()));
+    clock.advance(31);
+    service.expire().join();
+    restart();
+    List<Punishment> warnings = service.warnings(player).join();
+    assertEquals(
+        List.of(active.id(), revoked.id(), expiring.id()),
+        warnings.stream().map(Punishment::id).toList());
+    assertEquals(
+        List.of(Status.ACTIVE, Status.REVOKED, Status.EXPIRED),
+        warnings.stream().map(Punishment::status).toList());
+    assertEquals(4, service.history(player).join().size());
+    assertEquals(1, service.warnings(other).join().size());
+    assertEquals(
+        List.of(active.id()),
+        service.pendingWarnings(player).join().stream().map(Punishment::id).toList());
+    assertThrows(UnsupportedOperationException.class, () -> warnings.clear());
+  }
+
+  @Test
+  void allWarningRecordsBeyondOldFiftyRowDisplayRemainReachableInPages() {
+    List<UUID> created = new ArrayList<>();
+    database
+        .write(
+            connection -> {
+              for (int i = 0; i < 61; i++) {
+                clock.advance(1);
+                Result result =
+                    service.apply(connection, create(ActionType.CREATE_WARNING, reason()));
+                assertTrue(result.applied(), result.code());
+                created.add(result.punishment().id());
+              }
+              return null;
+            })
+        .join();
+    service.refresh().join();
+    assertEquals(61, service.warnings(player).join().size());
+    List<UUID> paged = new ArrayList<>();
+    for (int page = 1; page <= 7; page++) {
+      HistoryPage warnings = service.warnings(player, page, 10).join();
+      assertEquals(61, warnings.total());
+      assertEquals(7, warnings.totalPages());
+      assertEquals(page, warnings.page());
+      assertEquals(10, warnings.pageSize());
+      assertEquals(page < 7, warnings.hasNext());
+      assertEquals(page > 1, warnings.hasPrevious());
+      paged.addAll(warnings.entries().stream().map(Punishment::id).toList());
+    }
+    assertEquals(created.reversed(), paged);
+    assertEquals(
+        List.of(created.getFirst()),
+        service.history(player, 7, 10).join().entries().stream().map(Punishment::id).toList());
+    HistoryPage beyond = service.warnings(player, Integer.MAX_VALUE, 50).join();
+    assertTrue(beyond.entries().isEmpty());
+    assertFalse(beyond.hasNext());
+    assertEquals(61, beyond.total());
+  }
+
+  @Test
+  void historicalPagesUseExactInstantOrderingAcrossFractionalSecondsAndStableTies() {
+    Instant base = clock.instant();
+    Punishment exact = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    clock.now = base.plusNanos(1);
+    Punishment fractional = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    Punishment tied = applied(create(ActionType.CREATE_WARNING, reason())).punishment();
+    List<Punishment> expected = new ArrayList<>(List.of(exact, fractional, tied));
+    expected.sort(
+        Comparator.comparing(Punishment::issuedAt).reversed().thenComparing(Punishment::id));
+    for (int i = 0; i < expected.size(); i++) {
+      assertEquals(List.of(expected.get(i)), service.history(player, i + 1, 1).join().entries());
+      assertEquals(List.of(expected.get(i)), service.warnings(player, i + 1, 1).join().entries());
+    }
+  }
+
+  @Test
+  void invalidHistoryPageArgumentsDoNotInvalidateEnforcementCache() {
+    applied(create(ActionType.CREATE_WARNING, reason()));
+    for (int[] invalid :
+        List.of(new int[] {0, 10}, new int[] {-1, 10}, new int[] {1, 0}, new int[] {1, 51})) {
+      assertThrows(
+          CompletionException.class, () -> service.history(player, invalid[0], invalid[1]).join());
+      assertThrows(
+          CompletionException.class, () -> service.warnings(player, invalid[0], invalid[1]).join());
+    }
+    assertThrows(CompletionException.class, () -> service.history(null).join());
+    assertThrows(CompletionException.class, () -> service.warnings(null).join());
+    assertTrue(service.healthy());
+    HistoryPage empty = service.warnings(UUID.randomUUID(), 1, 10).join();
+    assertEquals(0, empty.total());
+    assertEquals(1, empty.totalPages());
+    assertFalse(empty.hasNext());
+    assertFalse(empty.hasPrevious());
+    assertTrue(empty.entries().isEmpty());
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> empty.entries().add(service.warnings(player).join().getFirst()));
   }
 
   @Test

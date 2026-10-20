@@ -14,36 +14,52 @@ public final class CommandGrammar {
     CommandSpec root = CommandSpec.create().name(name);
     switch (name) {
       case "ban", "mute", "warn", "kick" -> {
+        silent(root);
         target(root, false);
         reason(root, 1, true);
       }
       case "tempban", "tempmute" -> {
+        silent(root);
         target(root, false);
         parameter(root, 1, "duration", false);
         reason(root, 2, true);
       }
       case "unban", "unmute" -> {
+        silent(root);
         target(root, false);
         reason(root, 1, false);
       }
       case "checkban", "checkmute" -> target(root, false);
-      case "history" -> target(root, true);
+      case "history", "warnings" -> {
+        target(root, true);
+        root.addOption(
+            OptionSpec.builder("--page")
+                .type(int.class)
+                .arity("1")
+                .defaultValue("1")
+                .paramLabel("number")
+                .build());
+      }
       case "service" -> {
+        silent(root);
         target(root, true);
         parameter(root, 1, "blocks", true);
         reason(root, 2, false);
         root.addOption(
             OptionSpec.builder("--tool").type(String.class).paramLabel("wooden|stone").build());
         CommandSpec issue = CommandSpec.create().name("issue");
+        silent(issue);
         target(issue, false);
         parameter(issue, 1, "blocks", false);
         reason(issue, 2, true);
         issue.addOption(
             OptionSpec.builder("--tool").type(String.class).paramLabel("wooden|stone").build());
         CommandSpec release = CommandSpec.create().name("release");
+        silent(release);
         target(release, false);
         reason(release, 1, false);
         CommandSpec add = CommandSpec.create().name("add");
+        silent(add);
         target(add, false);
         parameter(add, 1, "blocks", false);
         reason(add, 2, true);
@@ -83,6 +99,10 @@ public final class CommandGrammar {
         .setInterpolateVariables(false)
         .setPosixClusteredShortOptionsAllowed(false)
         .setSubcommandsCaseInsensitive(true);
+  }
+
+  private static void silent(CommandSpec spec) {
+    spec.addOption(OptionSpec.builder("-s", "--silent").type(boolean.class).build());
   }
 
   private static void target(CommandSpec spec, boolean optional) {

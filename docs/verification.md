@@ -6,27 +6,68 @@ This record describes checks actually performed. It does not certify production 
 
 - Windows 11, Eclipse Temurin Java **25.0.4.1+1**.
 - Gradle wrapper **9.8.1**, compile API **Paper 26.3.build.200-stable**.
-- Final command: `gradlew.bat formatJava build --offline --no-daemon --console=plain --warning-mode=fail` (following a clean build).
+- Production JAR 1.2.0 build: `gradlew.bat formatJava build --offline --no-daemon --console=plain --warning-mode=fail`.
+- Latest validation includes the full test suite and optional UK adult preset in that build.
 - **BUILD SUCCESSFUL**. Java source compilation uses `-Xlint:deprecation`,
   `-Xlint:removal` and `-Werror`. These checks cover this source, not dependency internals.
-- **443 tests, 0 failures, 0 errors, 0 skipped**.
+- **1,325 tests, 0 failures, 0 errors, 0 skipped**.
 
 | Area | Tests | Evidence |
 | --- | ---: | --- |
-| Command grammar, dispatch and tab completion | 53 | Quotes/flags, required reasons, limits, no argument-file expansion, explicit issue/add, early release, prison and quarry operation dispatch, nested/prefix/namespaced completions, permission gates and visible targets |
-| Staff GUI authorization gateway | 27 | Individual permissions, expiry/deadline, final hierarchy checks, cancellation during lookup, connection identity, main-thread dispatch, reason bounds, immutable retry actions, bounded cache, service limits/tool/readiness rechecks and post-commit failure handling |
-| Punishment menu controller | 109 | All time/block presets, custom block bounds/overflow/input validation, fixed preset tamper protection, configurable lists, explicit confirmation, private reason handoff, deferred transitions, inventory controls, stale/cross-player callbacks, duplicate clicks and lifecycle cancellation |
-| Configuration | 7 | Defaults, HTTPS origin, database path, unsafe flags, limits, existing messages.yml filter feedback fallback and customization |
+| Command grammar, dispatch, history and tab completion | 120 | Silent flags, warnings/aliases/permissions, paging, target-only enforcement, commit-only announcements, post-commit failures; Quotes/flags, required reasons, limits, no argument-file expansion, explicit issue/add, early release, prison and quarry operation dispatch, nested/prefix/namespaced completions, permission gates and visible targets |
+| Staff GUI authorization gateway | 30 | Silent retries, specific service availability feedback, failed broadcast completion; Individual permissions, expiry/deadline, final hierarchy checks, cancellation during lookup, connection identity, main-thread dispatch, reason bounds, immutable retry actions, bounded cache, service limits/tool/readiness rechecks and post-commit failure handling |
+| Punishment menu controller | 111 | Silent warning/service confirmations and accurate disabled-service feedback; All time/block presets, custom block bounds/overflow/input validation, fixed preset tamper protection, configurable lists, explicit confirmation, private reason handoff, deferred transitions, inventory controls, stale/cross-player callbacks, duplicate clicks and lifecycle cancellation |
+| Configuration | 9 | Public announcement fallback/customization without rewriting existing messages; Defaults, HTTPS origin, database path, unsafe flags, limits, existing messages.yml filter feedback fallback and customization |
 | Public chat filter | 53 | Unicode whole-word/phrase matching, safe regex syntax and compilation bounds, adversarial patterns, concurrency, cancellation, original/current components, main-thread feedback, atomic reload and rollback |
-| Chat/connection enforcement listeners | 5 | Cached mute, namespaced aliases, storage failure, final connection validation |
-| SQLite/domain | 35 | Migrations, FULL/WAL/FK, rollback, expiry, revocation, warnings, kicks, identity, replay, revisions, restart/cache health |
+| Optional UK adult-community preset | 764 | Delivered YAML and 1.1.0 compatibility; 182 literal cases; 309 independent benign UK messages; 120 regex blocking examples and 152 counterexamples, individually and against the full preset |
+| Chat/connection enforcement listeners | 21 | Four-player cache invalidation regression, targeted enforcement, login fail-closed and reconnect-safe kick delivery; Cached mute, namespaced aliases, storage failure, final connection validation |
+| SQLite/domain | 40 | Warning history after delivery/ack/restart, all statuses and older pages; Migrations, FULL/WAL/FK, rollback, expiry, revocation, warnings, kicks, identity, replay, revisions, restart/cache health |
 | Community Service | 123 | Real SQLite snapshot/progress/restart/recovery, concurrent same-coordinate claims, mining/drop/XP checks, separate prison bounds and quarry validation, complete/unready layout protection, admission and recovery callbacks, empty-slot restoration, idempotent completion, bounded NBT receipts including corrupt gzip |
+| Public punishment announcements | 23 | Success-only broadcasts, silent suppression/retries, safe placeholders, no appeal credential leakage, temporary duration rounding and action details |
 | HTTPS sync/API contract | 31 | Mock transport timeouts/auth/outage, durable inbox/outbox/acks, replay/conflicts, appeal rotation races, pagination, shutdown, YAML refs |
 
 Local detailed results are in `build/reports/tests/test/index.html` and
 `build/test-results/test/`. The tests use real SQLite files, deterministic clocks,
 mock HTTPS transports and mocked Paper player/event objects as appropriate.
 They do not simulate every behavior of a live Minecraft client or third-party plugin.
+
+## Version 1.2.0 regression scope
+
+The reported disconnect text matched the old `enforcePlayer` unhealthy-cache kick.
+The regression deliberately invalidates moderation health during the first player's
+community reconciliation in a four-player pass. Already connected players are now
+deferred until a valid cache is available, with no storage-unavailable kicks. Local
+commands/GUI use targeted enforcement; periodic enforcement still checks all players.
+Login/join guards remain fail-closed. These multiplayer checks use mocked Paper
+players, not a live four-client reproduction on the production server.
+
+Warning storage checks found no deletion on delivery or acknowledgement. Existing
+history displayed only the newest 50 records; pages now expose older records and
+`warnings` filters before paging. Command ownership by other installed plugins still
+needs checking on the live server when old records cannot be found.
+
+The disabled Community Service GUI label now comes from the same admission checks as
+submission. Permission, disabled feature, prison-tool and quarry failures are shown
+separately. Tests cover a ready quarry with valid permissions and the specific refusal
+paths. The production jail configuration was not changed or remotely validated.
+
+## Version 1.2.0 isolated Paper smoke
+
+The final bundled JAR (SHA-256
+`9d872b316c4a8578584b27209ebdb2983521226b8fbdc52b7ac7cc801f4fc301`)
+loaded on Paper 26.3 build 205 at localhost port 25585 with website sync disabled.
+Console checks created two warnings (one public, one silent), issued a public
+one-hour ban and silently revoked it. Exactly two public announcements appeared;
+none contained a silent reason. The old messages.yml used the new fallback template.
+`warnings` returned both warnings, `warns --page 2` correctly rejected an out-of-range
+page, and namespaced history returned three saved punishment records including the
+revoked ban. Revocation modifies that ban rather than creating a fourth record.
+The server saved and stopped cleanly. There were no online Minecraft clients.
+
+Evidence: `verification/moderation-1.2.0-build.log`, `test-summary.json`, `artifact.json`,
+`staging-moderation-1.2.0.log` and `moderation-1.2.0-smoke-result.json`. Early smoke
+harness runs needed Windows output decoding and expected-record-count corrections;
+retained logs document those harness issues. The final harness completed with PASS.
 
 ## Paper staging smoke checks
 
@@ -35,7 +76,7 @@ on **127.0.0.1:25585**, with its own world, database and `mineplay-local-staging
 server ID. Website sync was disabled and a staging-only nonexistent credential
 environment variable was selected. No production service was contacted.
 
-The bundled deployment JAR loaded and enabled on the first run and after restart.
+Historical 1.0.0/1.1.0 staging runs: the bundled deployment JAR loaded and enabled on the first run and after restart.
 Console tests verified:
 
 - Permanent BAN and MUTE commits.
@@ -130,6 +171,13 @@ The SQLite fixture checks still pass with six punishments and ten retained outbo
 events. No real players, clients, Discord bridge or proxy participated.
 
 ## Artifact
+
+The optional [UK adult-community preset](chat-filter-uk-adult.md) was verified
+separately with the production matcher. Its configuration and tests do not change
+the 1.1.0 deployment JAR or enable the preset automatically. Evidence is in
+`verification/uk-adult-preset-tests.log` and
+`verification/uk-adult-preset-result.json`. Preset SHA-256:
+`cea6f2332db3eb5d77957e40890e69759e3e57bbf1a0e03f95657d90b0d35802`.
 
 `build/libs/MineplayPunishments-1.1.0.jar`
 

@@ -2,6 +2,7 @@ package cloud.mineplay.punishments.punishment;
 
 import cloud.mineplay.punishments.punishment.Models.Action;
 import cloud.mineplay.punishments.punishment.Models.ActionType;
+import cloud.mineplay.punishments.punishment.Models.HistoryPage;
 import cloud.mineplay.punishments.punishment.Models.Punishment;
 import cloud.mineplay.punishments.punishment.Models.Result;
 import cloud.mineplay.punishments.punishment.Models.Sentence;
@@ -645,16 +646,58 @@ public final class PunishmentService {
   }
 
   public CompletableFuture<List<Punishment>> history(UUID targetId) {
+    return records(targetId, null);
+  }
+
+  /** Includes all warnings, even after delivery, acknowledgement, expiry or revocation. */
+  public CompletableFuture<List<Punishment>> warnings(UUID targetId) {
+    return records(targetId, Type.WARNING);
+  }
+
+  /** One-based pages of at most 50 entries; ordering is newest first, then stable UUID order. */
+  public CompletableFuture<HistoryPage> history(UUID targetId, int page, int pageSize) {
+    return page(targetId, null, page, pageSize);
+  }
+
+  public CompletableFuture<HistoryPage> warnings(UUID targetId, int page, int pageSize) {
+    return page(targetId, Type.WARNING, page, pageSize);
+  }
+
+  private CompletableFuture<HistoryPage> page(UUID targetId, Type type, int page, int pageSize) {
+    if (page < 1 || pageSize < 1 || pageSize > 50)
+      return CompletableFuture.failedFuture(
+          new IllegalArgumentException(
+              "History needs a positive page and page size between 1 and 50"));
+    return records(targetId, type)
+        .thenApply(
+            records -> {
+              long offset = (long) (page - 1) * pageSize;
+              int start = (int) Math.min(offset, records.size());
+              int end = (int) Math.min(offset + pageSize, records.size());
+              return new HistoryPage(records.subList(start, end), page, pageSize, records.size());
+            });
+  }
+
+  private CompletableFuture<List<Punishment>> records(UUID targetId, Type type) {
+    if (targetId == null)
+      return CompletableFuture.failedFuture(
+          new IllegalArgumentException("Target UUID is required"));
     return database.read(
         connection -> {
           List<Punishment> result = new ArrayList<>();
           try (PreparedStatement query =
-              connection.prepareStatement("SELECT * FROM punishments WHERE target_id=?")) {
+              connection.prepareStatement(
+                  type == null
+                      ? "SELECT * FROM punishments WHERE target_id=?"
+                      : "SELECT * FROM punishments WHERE target_id=? AND type=?")) {
             query.setString(1, targetId.toString());
+            if (type != null) query.setString(2, type.name());
             try (ResultSet rows = query.executeQuery()) {
               while (rows.next()) result.add(readPunishment(rows));
             }
           }
+          // ISO Instant strings use variable precision. SQL lexical ordering would put
+          // ...:00Z ahead of ...:00.100Z, so retain exact Instant ordering for every page.
           result.sort(
               java.util.Comparator.comparing(Punishment::issuedAt)
                   .reversed()

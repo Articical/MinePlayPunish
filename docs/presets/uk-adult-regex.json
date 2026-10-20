@@ -1,0 +1,574 @@
+{
+  "profile": "UK adult public-chat moderation regex families",
+  "notes": [
+    "Build input only: these patterns are copied into chat-filter.regex-patterns alongside the separately curated literal list.",
+    "For MineplayPunishments ChatFilter: RE2/J case-insensitive find after NFKC normalization and removal of Unicode FORMAT characters. Do not copy into a different engine without checking semantics.",
+    "ASCII spaces, dots, underscores and hyphens between letters, plus selected conventional digit substitutions, are supported. Not every possible evasion or repeated-letter form is covered.",
+    "Ambiguous UK vocabulary is intentionally limited to whole-message directed insults. These rules do not identify intent, quotations, irony or all contexts; moderators still review reports.",
+    "Standalone threat, solicitation, self-harm and praise rules intentionally allow longer sentences so negated advice, reporting and Minecraft instructions are not indiscriminately blocked. This also leaves evasions for human moderation.",
+    "Examples under allowed describe this rule and are intended to remain allowed by the assembled preset unless the final literal policy explicitly documents otherwise.",
+    "Basic swearing such as fuck, shit, bloody, arse and bollocks is intentionally outside this preset. Identity, nationality, religion, orientation, 88 and 1488 are not blanket rules."
+  ],
+  "rules": [
+    {
+      "id": "anti-black-hard-r",
+      "comment": "Whole-word hard-r slur, optional plural and selected bounded repeated letters; boundaries protect snigger and other longer words.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])n{1,3}[\\s._-]*[i1!]{1,3}[\\s._-]*[g9][\\s._-]*[g9]{1,2}[\\s._-]*[e3]{1,3}[\\s._-]*r{1,3}(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "nigger",
+        "N 1 G G 3 R",
+        "n.i.g.g.e.r.s",
+        "niiggerr",
+        "ｎｉｇｇｅｒ",
+        "ni​gger"
+      ],
+      "allowed": [
+        "snigger",
+        "sniggering",
+        "Niger",
+        "Nigerian",
+        "Nigeria",
+        "niggardly",
+        "denigration"
+      ]
+    },
+    {
+      "id": "anti-black-soft-a",
+      "comment": "Whole-word soft-a variant, optional plural and selected bounded repeated letters. Reclaimed usage is still filtered.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])n{1,3}[\\s._-]*[i1!]{1,3}[\\s._-]*[g9][\\s._-]*[g9]{1,2}[\\s._-]*[a4]{1,3}(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "nigga",
+        "n_1_g_g_4",
+        "n i g g a s",
+        "niiggaa"
+      ],
+      "allowed": [
+        "enigmatic",
+        "Nijmegen",
+        "Nigerian"
+      ]
+    },
+    {
+      "id": "porch-monkey",
+      "comment": "Racist compound with spaced, joined or conventionally obfuscated letters.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])p[\\s._-]*[o0][\\s._-]*r[\\s._-]*c[\\s._-]*h[\\s._-]*m[\\s._-]*[o0][\\s._-]*n[\\s._-]*k[\\s._-]*[e3][\\s._-]*y(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "porch monkey",
+        "p0rch m0nk3y",
+        "p.o.r.c.h.m.o.n.k.e.y.s"
+      ],
+      "allowed": [
+        "porch swing",
+        "monkey puzzle tree",
+        "the monkey sat on the porch"
+      ]
+    },
+    {
+      "id": "jungle-bunny",
+      "comment": "Racist compound, including its correct plural; ordinary separate jungle and bunny discussion is unaffected.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])j[\\s._-]*u[\\s._-]*n[\\s._-]*[g9][\\s._-]*l[\\s._-]*[e3][\\s._-]*b[\\s._-]*u[\\s._-]*n[\\s._-]*n[\\s._-]*(?:y|[i1!][\\s._-]*[e3][\\s._-]*[s5$])($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "jungle bunny",
+        "jungl3 bunny",
+        "j.u.n.g.l.e.b.u.n.n.i.e.s"
+      ],
+      "allowed": [
+        "jungle biome",
+        "bunny rabbit",
+        "a bunny in the jungle"
+      ]
+    },
+    {
+      "id": "directed-coon",
+      "comment": "Ambiguous animal/name term: only an entire direct insult, with optional abusive modifier, is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?c[\\s._-]*[o0][\\s._-]*[o0][\\s._-]*n(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you coon",
+        "you are a c00n",
+        "u r a filthy c.o.o.n"
+      ],
+      "allowed": [
+        "Maine Coon cat",
+        "Coon Rapids",
+        "you are a Maine Coon owner",
+        "coon hound"
+      ]
+    },
+    {
+      "id": "anti-south-asian-paki",
+      "comment": "Whole-word ethnic slur; Unicode word boundaries protect Pakistan, Pakistani and names containing the sequence.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])p[\\s._-]*[a4][\\s._-]*k(?:[\\s._-]*k)?[\\s._-]*[i1!](?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "paki",
+        "p.4.k.1.s",
+        "p a k k i"
+      ],
+      "allowed": [
+        "Pakistan",
+        "Pakistani",
+        "Pakistani food",
+        "Pakistani players"
+      ]
+    },
+    {
+      "id": "curry-muncher",
+      "comment": "Racist compound; food and curry discussion without the compound is allowed.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])c[\\s._-]*u[\\s._-]*r[\\s._-]*r[\\s._-]*y[\\s._-]*m[\\s._-]*u[\\s._-]*n[\\s._-]*c[\\s._-]*h[\\s._-]*[e3][\\s._-]*r(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "curry muncher",
+        "curry m u n c h 3 r",
+        "c.u.r.r.y.m.u.n.c.h.e.r.s"
+      ],
+      "allowed": [
+        "curry and rice",
+        "curry night",
+        "munching curry"
+      ]
+    },
+    {
+      "id": "directed-gook",
+      "comment": "Ambiguous sticky-material term: restricted to a whole-message direct insult.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?[g9][\\s._-]*[o0][\\s._-]*[o0][\\s._-]*k(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you gook",
+        "you are a g00k",
+        "u r a g.o.o.k"
+      ],
+      "allowed": [
+        "gook",
+        "sticky gook on my boots",
+        "wipe the gook off the piston",
+        "the machine is covered in gook"
+      ]
+    },
+    {
+      "id": "ching-chong",
+      "comment": "Racist mock-language phrase; ordinary Chinese identity and language discussion remains allowed.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])c[\\s._-]*h[\\s._-]*[i1!][\\s._-]*n[\\s._-]*[g9][\\s._-]*c[\\s._-]*h[\\s._-]*[o0][\\s._-]*n[\\s._-]*[g9]($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "ching chong",
+        "ch1ng ch0ng",
+        "c.h.i.n.g.c.h.o.n.g"
+      ],
+      "allowed": [
+        "Chinese player",
+        "Chinese language",
+        "Chongqing",
+        "I am learning Mandarin"
+      ]
+    },
+    {
+      "id": "directed-chink",
+      "comment": "Ambiguous gap/armour term: only a whole-message directed noun insult is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+(?:(?:dirty|filthy)\\s+)?|(?:dirty|filthy)\\s+)c[\\s._-]*h[\\s._-]*[i1!][\\s._-]*n[\\s._-]*k(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a chink",
+        "you filthy ch1nk",
+        "u r a c.h.i.n.k"
+      ],
+      "allowed": [
+        "chink in the armour",
+        "a chink of light",
+        "you are looking for a chink in the armour"
+      ]
+    },
+    {
+      "id": "directed-kike",
+      "comment": "Also a personal nickname: require a directed noun insult or an abusive modifier, and no sentence continuation.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+(?:(?:dirty|filthy)\\s+)?|(?:dirty|filthy)\\s+)k[\\s._-]*[i1!][\\s._-]*k[\\s._-]*[e3](?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a kike",
+        "you dirty k1k3",
+        "u r a k.i.k.e"
+      ],
+      "allowed": [
+        "Kike scored a goal",
+        "you are Kike",
+        "Kike is my friend"
+      ]
+    },
+    {
+      "id": "anti-romani-pikey",
+      "comment": "Whole-word anti-Traveller slur; nationality and community names are not rules.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])p[\\s._-]*[i1!][\\s._-]*k[\\s._-]*[e3][\\s._-]*y(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "pikey",
+        "p.1.k.3.y",
+        "p i k e y s"
+      ],
+      "allowed": [
+        "Traveller",
+        "Romani",
+        "Roma",
+        "Pike fishing"
+      ]
+    },
+    {
+      "id": "directed-wetback",
+      "comment": "Wet-back descriptions can be literal; only an entire directed insult is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?w[\\s._-]*[e3][\\s._-]*[t7][\\s._-]*b[\\s._-]*[a4][\\s._-]*c[\\s._-]*k(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you wetback",
+        "you are a w3tb4ck",
+        "u r a wet back"
+      ],
+      "allowed": [
+        "wet back",
+        "wetback stove",
+        "my wet back hurts",
+        "my shirt has a wet back from the rain"
+      ]
+    },
+    {
+      "id": "directed-spic",
+      "comment": "Preserves the UK phrase spic and span by requiring a complete directed noun insult.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+(?:(?:dirty|filthy)\\s+)?|(?:dirty|filthy)\\s+)[s5$][\\s._-]*p[\\s._-]*[i1!][\\s._-]*c(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a spic",
+        "you dirty sp1c",
+        "u r a s.p.i.c"
+      ],
+      "allowed": [
+        "spic and span",
+        "you are spic and span",
+        "the kitchen is spic and span"
+      ]
+    },
+    {
+      "id": "sand-nword",
+      "comment": "Racist compound using hard-r or soft-a ending; covers the joined form which the standalone n-word boundaries cannot catch.",
+      "pattern": "(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])[s5$][\\s._-]*[a4][\\s._-]*n[\\s._-]*d[\\s._-]*n[\\s._-]*[i1!][\\s._-]*[g9][\\s._-]*[g9][\\s._-]*(?:[e3][\\s._-]*r|[a4])(?:[\\s._-]*[s5$])?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])",
+      "blocked": [
+        "sandnigger",
+        "s4nd n1gg3r",
+        "sand nigga",
+        "s.a.n.d.n.i.g.g.e.r.s"
+      ],
+      "allowed": [
+        "sand and gravel",
+        "sandstone quarry",
+        "desert biome"
+      ]
+    },
+    {
+      "id": "racist-head-compounds",
+      "comment": "Obfuscated racist head compounds only in whole-message directed insults, to preserve literal towel-head clothing descriptions. The assembled literal list separately blocks unambiguous joined forms.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?(?:r[\\s._-]*[a4][\\s._-]*[g9]|[t7][\\s._-]*[o0][\\s._-]*w[\\s._-]*[e3][\\s._-]*l)[\\s._-]*h[\\s._-]*[e3][\\s._-]*[a4][\\s._-]*d(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a raghead",
+        "you are a towel head",
+        "you are a r.4.g.h.3.4.d.s",
+        "you are a t0welhe4d"
+      ],
+      "allowed": [
+        "head scarf",
+        "towel rail",
+        "rag doll",
+        "Muslim",
+        "Sikh",
+        "turban",
+        "hijab",
+        "I bought a towel head wrap",
+        "towel head wrap",
+        "rag head mop"
+      ]
+    },
+    {
+      "id": "directed-fag-faggot",
+      "comment": "UK cigarette and traditional-food senses remain allowed. Requires an entire direct insult; catches both short and longer forms.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?f[\\s._-]*[a4][\\s._-]*[g9](?:[\\s._-]*[g9][\\s._-]*[o0][\\s._-]*[t7])?(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you fag",
+        "you are a f4gg07",
+        "u r a f.a.g.g.o.t",
+        "you filthy fags"
+      ],
+      "allowed": [
+        "fag",
+        "a fag break",
+        "going for a fag",
+        "faggots and peas",
+        "you are cooking faggots",
+        "a fag packet"
+      ]
+    },
+    {
+      "id": "directed-poof",
+      "comment": "Magic/noise word is ambiguous; only an entire direct insult is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?p[\\s._-]*[o0][\\s._-]*[o0][\\s._-]*f(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you poof",
+        "you are a p00f",
+        "u r a p.o.o.f"
+      ],
+      "allowed": [
+        "poof!",
+        "poof and it vanished",
+        "the magician said poof"
+      ]
+    },
+    {
+      "id": "abusive-directed-queer",
+      "comment": "Queer is an identity word. A whole-message directed insult must also include dirty or filthy.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:dirty|filthy)\\s+q[\\s._-]*u[\\s._-]*[e3][\\s._-]*[e3][\\s._-]*r(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you dirty queer",
+        "you are a filthy qu33r",
+        "u r a dirty q.u.e.e.r"
+      ],
+      "allowed": [
+        "queer",
+        "you are queer",
+        "queer community",
+        "queer history",
+        "I am queer"
+      ]
+    },
+    {
+      "id": "directed-dyke",
+      "comment": "Preserves geographic/flood-defence senses and unqualified identity discussion; requires a complete directed noun insult.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+(?:(?:dirty|filthy)\\s+)?|(?:dirty|filthy)\\s+)d[\\s._-]*y[\\s._-]*k[\\s._-]*[e3](?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a dyke",
+        "you dirty dyk3",
+        "u r a d.y.k.e"
+      ],
+      "allowed": [
+        "dyke",
+        "flood dyke",
+        "Offas Dyke",
+        "the dyke needs repairing",
+        "you are repairing the dyke"
+      ]
+    },
+    {
+      "id": "directed-tranny",
+      "comment": "British transmission/radio slang is ambiguous: only an entire direct insult is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?[t7][\\s._-]*r[\\s._-]*[a4][\\s._-]*n[\\s._-]*n[\\s._-]*y(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you tranny",
+        "you are a tr4nny",
+        "u r a t.r.a.n.n.y"
+      ],
+      "allowed": [
+        "tranny fluid",
+        "a tranny radio",
+        "replace the tranny",
+        "you are a tranny expert",
+        "Troon railway station"
+      ]
+    },
+    {
+      "id": "anti-trans-shemale",
+      "comment": "Obfuscated anti-trans label only in whole-message directed insults: a spacing-insensitive unconditional rule would incorrectly match \"Is she male?\". Joined/hyphenated literal forms are handled separately.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?[s5$][\\s._-]*h[\\s._-]*[e3][\\s._-]*m[\\s._-]*[a4][\\s._-]*l[\\s._-]*[e3](?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a shemale",
+        "you are a sh3m4l3",
+        "you are a s.h.e.m.a.l.e.s",
+        "you are a she-male"
+      ],
+      "allowed": [
+        "transgender",
+        "trans woman",
+        "male",
+        "female",
+        "she is male",
+        "Is she male?",
+        "she male or female",
+        "is she male or female?"
+      ]
+    },
+    {
+      "id": "directed-retard",
+      "comment": "Technical timing/retardation language remains allowed; only an entire direct insult is blocked.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+)?(?:(?:dirty|filthy)\\s+)?r[\\s._-]*[e3][\\s._-]*[t7][\\s._-]*[a4][\\s._-]*r[\\s._-]*d(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you retard",
+        "you are a r374rd",
+        "u r a r.e.t.a.r.d"
+      ],
+      "allowed": [
+        "retard the ignition timing",
+        "fire retardant",
+        "retardation",
+        "you retard the timing by two degrees",
+        "the throttle retards"
+      ]
+    },
+    {
+      "id": "directed-spastic",
+      "comment": "Clinical spasticity language remains allowed; require a complete directed noun insult or an abusive modifier.",
+      "pattern": "^\\s*(?:you|u)(?:\\s+(?:are|r)|[\\x{27}\\x{2019}]re)?\\s+(?:a\\s+(?:(?:dirty|filthy)\\s+)?|(?:dirty|filthy)\\s+)[s5$][\\s._-]*p[\\s._-]*[a4][\\s._-]*[s5$][\\s._-]*[t7][\\s._-]*[i1!][\\s._-]*c(?:[\\s._-]*[s5$])?[.!?]*\\s*$",
+      "blocked": [
+        "you are a spastic",
+        "you filthy sp4st1c",
+        "u r a s.p.a.s.t.i.c"
+      ],
+      "allowed": [
+        "spastic diplegia",
+        "spastic cerebral palsy",
+        "spasticity",
+        "spastic colon",
+        "you are discussing spasticity"
+      ]
+    },
+    {
+      "id": "standalone-nazi-salutes",
+      "comment": "Whole-message Nazi salutes. History, names and explanatory sentences are deliberately outside this contextual regex.",
+      "pattern": "^\\s*(?:h[\\s._-]*[e3][\\s._-]*[i1!][\\s._-]*l[\\s._-]*h[\\s._-]*[i1!][\\s._-]*[t7][\\s._-]*l[\\s._-]*[e3][\\s._-]*r|[s5$][\\s._-]*[i1!][\\s._-]*[e3][\\s._-]*[g9][\\s._-]*h[\\s._-]*[e3][\\s._-]*[i1!][\\s._-]*l)[.!?]*\\s*$",
+      "blocked": [
+        "heil hitler",
+        "h31l h17l3r!",
+        "sieg heil",
+        "s i e g h e i l"
+      ],
+      "allowed": [
+        "Hitler was a dictator",
+        "Nazism is hateful",
+        "history lesson about Hitler",
+        "Hindu swastika history"
+      ]
+    },
+    {
+      "id": "standalone-white-power",
+      "comment": "Whole-message supremacist slogan, to avoid ordinary descriptions such as white power cable.",
+      "pattern": "^\\s*w[\\s._-]*h[\\s._-]*[i1!][\\s._-]*[t7][\\s._-]*[e3][\\s._-]*p[\\s._-]*[o0][\\s._-]*w[\\s._-]*[e3][\\s._-]*r[.!?]*\\s*$",
+      "blocked": [
+        "white power",
+        "wh173 p0w3r!",
+        "w.h.i.t.e.p.o.w.e.r"
+      ],
+      "allowed": [
+        "white power cable",
+        "a white power supply",
+        "white powder snow",
+        "I need a white power strip"
+      ]
+    },
+    {
+      "id": "standalone-self-harm-imperatives",
+      "comment": "Entire kill-yourself, go-die or KYS command only. Negated advice, support and explicit extended game instructions are deliberately outside this rule.",
+      "pattern": "^\\s*(?:k[\\s._-]*[i1!][\\s._-]*l[\\s._-]*l[\\s._-]*y[\\s._-]*[o0][\\s._-]*u[\\s._-]*r[\\s._-]*[s5$][\\s._-]*[e3][\\s._-]*l[\\s._-]*f|[g9][\\s._-]*[o0][\\s._-]+d[\\s._-]*[i1!][\\s._-]*[e3]|k[\\s._-]*y[\\s._-]*[s5$])[.!?]*\\s*$",
+      "blocked": [
+        "kill yourself",
+        "k1ll y0ur53lf",
+        "k.i.l.l.y.o.u.r.s.e.l.f",
+        "k i l l y o u r s e l f",
+        "go die",
+        "g0 d13!",
+        "g.o.d.i.e",
+        "kys",
+        "k.y.s",
+        "k y $!",
+        "killyourself"
+      ],
+      "allowed": [
+        "do not kill yourself",
+        "please do not kill yourself",
+        "kill yourself in Minecraft to reset inventory",
+        "the command is called kill",
+        "go die in lava to reset inventory",
+        "go digging",
+        "do not go die",
+        "go die in Minecraft and respawn",
+        "sky",
+        "Skyscanner",
+        "I do not know what that acronym means",
+        "kys is a harmful thing to say"
+      ]
+    },
+    {
+      "id": "standalone-sexual-image-request",
+      "comment": "Stand-alone nude-image solicitation. Negation and safety advice are not matched; ordinary adult topics remain allowed.",
+      "pattern": "^\\s*(?:please\\s+)?[s5$][\\s._-]*[e3][\\s._-]*n[\\s._-]*d\\s+(?:me\\s+)?(?:(?:your|ur)\\s+)?n[\\s._-]*u[\\s._-]*d[\\s._-]*[e3](?:[\\s._-]*[s5$]|\\s+(?:pics|pictures))\\s*(?:please\\s*)?[.!?]*\\s*$",
+      "blocked": [
+        "send nudes",
+        "send me nudes",
+        "s3nd n.u.d.3.s",
+        "please send your nude pictures!"
+      ],
+      "allowed": [
+        "never send nudes",
+        "do not send me nudes",
+        "report anyone who asks you to send nudes",
+        "nude art study",
+        "the nude figure painting"
+      ]
+    },
+    {
+      "id": "standalone-credential-request",
+      "comment": "Stand-alone first-person request for a password or recovery/verification code; advice and negation remain allowed.",
+      "pattern": "^\\s*(?:please\\s+)?(?:send|give|tell)\\s+me\\s+(?:your|ur)\\s+(?:p[\\s._-]*[a4][\\s._-]*[s5$][\\s._-]*[s5$][\\s._-]*w[\\s._-]*[o0][\\s._-]*r[\\s._-]*d|(?:recovery|verification)\\s+code)\\s*(?:please\\s*)?[.!?]*\\s*$",
+      "blocked": [
+        "give me your password",
+        "send me ur p4ssw0rd",
+        "tell me your p.a.s.s.w.o.r.d",
+        "please send me your recovery code"
+      ],
+      "allowed": [
+        "never give me your password",
+        "never send anyone your recovery code",
+        "I forgot my password",
+        "use a strong password",
+        "do not give me your password"
+      ]
+    },
+    {
+      "id": "standalone-explicit-threat",
+      "comment": "Whole-message first-person sexual threat or explicit real-world death threat. Ordinary PvP language and third-person reports are not matched.",
+      "pattern": "^\\s*i(?:[\\x{27}\\x{2019}]ll|\\s+will|\\s+am\\s+going\\s+to)\\s+(?:(?:k[i1!]ll|murd[e3]r|sh[o0][o0]t|st[a4]b)\\s+(?:you|u)\\s+(?:irl|in\\s+real\\s+life)|r[a4]p[e3]\\s+(?:you|u|your\\s+(?:mum|mom|mother|sister)))[.!?]*\\s*$",
+      "blocked": [
+        "I'll kill you irl",
+        "I will stab u in real life",
+        "I am going to rape you",
+        "I will r4p3 your mum!"
+      ],
+      "allowed": [
+        "I'll kill you",
+        "I will kill you in Minecraft",
+        "he threatened to rape you",
+        "never say I will rape you",
+        "please report anyone who says I will kill you irl"
+      ]
+    },
+    {
+      "id": "standalone-nazi-praise",
+      "comment": "Specific whole-message praise or calls to restore Hitler. Historical mentions, condemnation, reports and statements with other predicates remain allowed.",
+      "pattern": "^\\s*(?:h[\\s._-]*[i1!][\\s._-]*[t7][\\s._-]*l[\\s._-]*[e3][\\s._-]*r\\s+(?:was\\s+r[i1!]ght|did\\s+n[o0]thing\\s+(?:wr[o0]ng|bad)|should\\s+have\\s+finished)|bring\\s+back\\s+h[i1!][t7]l[e3]r)[.!?]*\\s*$",
+      "blocked": [
+        "Hitler was right",
+        "h1tl3r did n0thing wr0ng",
+        "h.i.t.l.e.r did nothing bad",
+        "Hitler should have finished",
+        "bring back h1tl3r!"
+      ],
+      "allowed": [
+        "Hitler was wrong",
+        "Hitler did nothing right",
+        "historians reject the claim Hitler was right",
+        "report anyone saying bring back Hitler",
+        "Hitler was responsible for genocide"
+      ]
+    },
+    {
+      "id": "standalone-dox-swat-address-threat",
+      "comment": "Whole-message first-person doxxing, swatting or address-exposure threat. The verbs and address support selected digit substitutions; reporting and prevention advice are allowed.",
+      "pattern": "^\\s*i(?:[\\x{27}\\x{2019}]ll|\\s+will|\\s+am\\s+going\\s+to)\\s+(?:d[o0]xx?\\s+(?:you|u)|[s5$]w[a4][t7]\\s+(?:you|u|(?:your|ur)\\s+h[o0]u[s5$][e3])|l[e3][a4]k\\s+(?:your|ur)\\s+[a4]ddr[e3][s5$][s5$])[.!?]*\\s*$",
+      "blocked": [
+        "I'll dox you",
+        "I will d0xx u",
+        "I am going to sw4t your house",
+        "I will swat you!",
+        "I will leak ur addr3ss"
+      ],
+      "allowed": [
+        "he threatened to dox you",
+        "never say I will leak your address",
+        "report anyone saying I will swat you",
+        "I will swat the fly",
+        "I will share the public server address"
+      ]
+    }
+  ]
+}

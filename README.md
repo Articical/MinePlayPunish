@@ -16,7 +16,7 @@ $env:JAVA_HOME = 'C:\path\to\jdk-25'
 .\gradlew.bat clean build --no-daemon
 ```
 
-Deploy **`build/libs/MineplayPunishments-1.1.0.jar`**, the bundled JAR, to `plugins/`
+Deploy **`build/libs/MineplayPunishments-1.2.0.jar`**, the bundled JAR, to `plugins/`
 and restart Paper. Do not deploy the `-unbundled` or `-sources` JAR. SQLite JDBC,
 Gson, RE2/J and the command parser are bundled; Paper/Adventure and LuckPerms are not.
 LuckPerms is optional but needed to verify offline staff permissions without an explicit override.
@@ -58,7 +58,30 @@ Install the new JAR with a full restart. For an existing installation, add the o
 `chat-filter` section to `config.yml`; missing settings leave the rules empty. After
 editing rules or the message template, use `/mp admin reload`. Invalid rule changes
 leave the previous working filter active. See the [chat-filter guide](docs/chat-filter.md)
+and the [ready-to-use UK adult-community preset](docs/chat-filter-uk-adult.md)
 for examples, limits, Unicode handling and checks with your actual chat/relay plugins.
+
+## Announcements and warning records
+
+Local staff commands and GUI confirmations announce successful punishment issues,
+revocations and Community Service changes in public chat. Add `-s` or `--silent`
+to suppress the public notice, including `/punish <player> -s`. Silent actions
+still save records and notify/enforce the affected player. The menu shows the
+chosen announcement mode. Customize `punishment-announcement` in `messages.yml`;
+older message files receive the built-in fallback without being overwritten.
+Website-originated actions retain their existing behavior.
+
+`/warnings [player]` (alias `/warns`) lists saved warnings, including expired,
+revoked and acknowledged warnings. `/history [player]` includes every punishment
+type. Both show ten entries per page; use `--page 2` for older records. Use
+`/mineplaypunishments:warn` and `/mineplaypunishments:warnings` if another plugin
+owns the short command. Records created by another plugin are not imported.
+
+Version 1.2.0 also fixes unrelated players being disconnected when community-service
+writes temporarily invalidate the moderation cache. Existing players wait for the
+next valid enforcement pass; login and communication checks remain guarded. Commands
+immediately enforce only their target. Disabled Community Service menu items now
+show the specific permission, configuration, equipment or quarry readiness failure.
 
 ## Staff punishment menu
 

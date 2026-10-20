@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cloud.mineplay"
-version = "1.1.0"
+version = "1.2.0"
 description = "Standalone, locally authoritative Mineplay moderation for Paper"
 
 val javaFormatter = configurations.create("javaFormatter")
@@ -57,6 +57,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    inputs.files(fileTree("docs/presets") { include("uk-adult-*.json", "chat-filter-uk-adult.yml") })
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     jvmArgs("-javaagent:${mockitoAgent.singleFile}", "-Xshare:off")
 }

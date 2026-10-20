@@ -3,10 +3,94 @@ package cloud.mineplay.punishments.commands;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import picocli.CommandLine;
 
 class CommandGrammarTest {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "ban Steve Reason",
+        "tempban Steve 1h Reason",
+        "mute Steve Reason",
+        "tempmute Steve 1h Reason",
+        "warn Steve Reason",
+        "kick Steve Reason",
+        "unban Steve Reason",
+        "unmute Steve Reason",
+        "service Steve 100 Reason",
+        "service issue Steve 100 Reason",
+        "service add Steve 100 Reason",
+        "service release Steve Reason"
+      })
+  void mutationFlagsAreAcceptedBeforeBetweenAndAfterArguments(String input) {
+    List<String> tokens = List.of(Arguments.tokens(input));
+    for (String flag : List.of("-s", "--silent")) {
+      for (int position = 0; position < tokens.size(); position++) {
+        List<String> invocation = new ArrayList<>(tokens.subList(1, tokens.size()));
+        invocation.add(position, flag);
+        var result =
+            CommandGrammar.parser(tokens.getFirst()).parseArgs(invocation.toArray(String[]::new));
+        boolean silent = result.matchedOptionValue("--silent", false);
+        while (result.hasSubcommand()) {
+          result = result.subcommand();
+          silent |= result.matchedOptionValue("--silent", false);
+        }
+        assertTrue(silent, input + " at " + position);
+        assertEquals("Steve", result.matchedPositionalValue(0, ""));
+      }
+    }
+  }
+
+  @Test
+  void optionTerminatorPreservesSilentLookingReasonAndDefaultIsPublic() {
+    var normal = CommandGrammar.parser("warn").parseArgs("Steve", "Reason");
+    assertFalse(normal.matchedOptionValue("--silent", false));
+    var literal = CommandGrammar.parser("warn").parseArgs("Steve", "--", "-s", "--silent");
+    assertFalse(literal.hasMatchedOption("--silent"));
+    assertArrayEquals(
+        new String[] {"-s", "--silent"}, literal.matchedPositionalValue(1, new String[0]));
+  }
+
+  @Test
+  void readAndAdminCommandsRejectSilentOptions() {
+    for (String name : List.of("history", "warnings", "checkban", "checkmute")) {
+      assertThrows(
+          CommandLine.ParameterException.class,
+          () -> CommandGrammar.parser(name).parseArgs("Steve", "-s"));
+    }
+    for (String[] args :
+        List.of(
+            new String[] {"admin", "status", "-s"},
+            new String[] {"appeal", "id", "--silent"},
+            new String[] {"acknowledge", "id", "-s"})) {
+      assertThrows(
+          CommandLine.ParameterException.class, () -> CommandGrammar.parser("mp").parseArgs(args));
+    }
+    assertThrows(
+        CommandLine.ParameterException.class,
+        () -> CommandGrammar.parser("service").parseArgs("progress", "--silent"));
+  }
+
+  @Test
+  void historyAndWarningsAcceptOptionalTargetsAndTypedPages() {
+    for (String name : List.of("history", "warnings")) {
+      var own = CommandGrammar.parser(name).parseArgs("--page", "2");
+      assertNull(own.matchedPositionalValue(0, null));
+      assertEquals(2, own.matchedOptionValue("--page", 1));
+      var other = CommandGrammar.parser(name).parseArgs("Steve", "--page", "7");
+      assertEquals("Steve", other.matchedPositionalValue(0, ""));
+      assertEquals(7, other.matchedOptionValue("--page", 1));
+      assertThrows(
+          CommandLine.ParameterException.class,
+          () -> CommandGrammar.parser(name).parseArgs("Steve", "--page", "many"));
+    }
+  }
+
   @Test
   void sentenceParsesTrailingToolAndQuotedReason() {
     var args =

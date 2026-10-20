@@ -95,6 +95,7 @@ class PunishMenuTest {
       Type type,
       Duration duration,
       String reason,
+      boolean silent,
       BooleanSupplier guard,
       CompletableFuture<Result> completion) {}
 
@@ -114,6 +115,7 @@ class PunishMenuTest {
       UUID actionId,
       int blocks,
       String reason,
+      boolean silent,
       BooleanSupplier guard,
       CompletableFuture<Result> completion) {}
 
@@ -232,6 +234,7 @@ class PunishMenuTest {
             any(Type.class),
             nullable(Duration.class),
             nullable(String.class),
+            anyBoolean(),
             any(BooleanSupplier.class)))
         .thenAnswer(
             call -> {
@@ -245,6 +248,7 @@ class PunishMenuTest {
                       call.getArgument(4),
                       call.getArgument(5),
                       call.getArgument(6),
+                      call.getArgument(7),
                       result));
               return result;
             });
@@ -254,6 +258,7 @@ class PunishMenuTest {
             any(UUID.class),
             anyInt(),
             nullable(String.class),
+            anyBoolean(),
             any(BooleanSupplier.class)))
         .thenAnswer(
             call -> {
@@ -266,6 +271,7 @@ class PunishMenuTest {
                       call.getArgument(3),
                       call.getArgument(4),
                       call.getArgument(5),
+                      call.getArgument(6),
                       result));
               return result;
             });
@@ -281,6 +287,39 @@ class PunishMenuTest {
     bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
     clock = new MutableClock();
     menu = new PunishMenu(plugin, gateway, view, clock);
+  }
+
+  @Test
+  void silentMenuKeepsItsFlagThroughWarningAndServiceConfirmation() {
+    menu.onCommand(player, null, "punish", new String[] {"Target", "-s"});
+    assertEquals(
+        "Silent punishment",
+        shown().buttons().stream().filter(b -> b.slot() == 24).findFirst().orElseThrow().label());
+    click(currentTop, player, 16, ClickType.LEFT, false);
+    while (!scheduled.isEmpty()) tick();
+    prompts.getLast().confirm().accept(player, "Test warning");
+    assertTrue(submissions.getLast().silent());
+    menu.onCommand(player, null, "punish", new String[] {"--silent", "Target"});
+    click(currentTop, player, 22, ClickType.LEFT, false);
+    while (!scheduled.isEmpty()) tick();
+    click(currentTop, player, 10, ClickType.LEFT, false);
+    while (!scheduled.isEmpty()) tick();
+    servicePrompts
+        .getLast()
+        .confirm()
+        .accept(player, new PunishMenu.ServiceInput(null, "Test service"));
+    assertTrue(serviceSubmissions.getLast().silent());
+  }
+
+  @Test
+  void disabledServiceButtonShowsPermissionFailureRatherThanQuarrySetupClaim() {
+    when(gateway.availableService(player)).thenReturn(false);
+    when(gateway.serviceUnavailableReason(player))
+        .thenReturn("You do not have permission to issue Community Service");
+    open();
+    assertEquals(
+        "You do not have permission to issue Community Service",
+        shown().buttons().stream().filter(b -> b.slot() == 22).findFirst().orElseThrow().detail());
   }
 
   @AfterEach

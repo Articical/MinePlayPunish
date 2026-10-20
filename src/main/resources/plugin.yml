@@ -9,48 +9,53 @@ softdepend: [LuckPerms, WorldGuard, Essentials, Chatter]
 commands:
   punish:
     description: Open the staff punishment menu for a player
-    usage: /punish <player|uuid>
+    usage: /punish <player|uuid> [-s]
     permission: mineplaypunishments.gui
 
   ban:
     description: Mineplay ban command
-    usage: /ban
+    usage: /ban <player|uuid> <reason> [-s|--silent]
 
   tempban:
     description: Mineplay tempban command
-    usage: /tempban
+    usage: /tempban <player|uuid> <duration> <reason> [-s|--silent]
 
   unban:
     description: Mineplay unban command
-    usage: /unban
+    usage: /unban <player|uuid> [reason] [-s|--silent]
 
   mute:
     description: Mineplay mute command
-    usage: /mute
+    usage: /mute <player|uuid> <reason> [-s|--silent]
 
   tempmute:
     description: Mineplay tempmute command
-    usage: /tempmute
+    usage: /tempmute <player|uuid> <duration> <reason> [-s|--silent]
 
   unmute:
     description: Mineplay unmute command
-    usage: /unmute
+    usage: /unmute <player|uuid> [reason] [-s|--silent]
 
   warn:
     description: Mineplay warn command
-    usage: /warn
+    usage: /warn <player|uuid> <reason> [-s|--silent]
 
   kick:
     description: Mineplay kick command
-    usage: /kick
+    usage: /kick <player|uuid> <reason> [-s|--silent]
 
   service:
     description: Issue, extend, release or check a Community Service sentence
-    usage: /service [issue] <player> <blocks> <reason> [--tool wooden|stone], or /service add|release|progress
+    usage: /service [issue] <player> <blocks> <reason> [--tool wooden|stone] [-s|--silent], or /service add|release|progress
 
   history:
-    description: Mineplay history command
-    usage: /history
+    description: View all saved punishment types, including warnings
+    usage: /history [player|uuid] [--page number]
+
+  warnings:
+    description: View saved warnings, including expired and acknowledged records
+    aliases: [warns]
+    usage: /warnings [player|uuid] [--page number]
 
   checkban:
     description: Mineplay checkban command
@@ -95,6 +100,12 @@ permissions:
   mineplaypunishments.history:
     default: op
   mineplaypunishments.history.others:
+    default: op
+  mineplaypunishments.warnings:
+    description: View your saved warnings (history permission also permits this)
+    default: op
+  mineplaypunishments.warnings.others:
+    description: View another player's saved warnings (history.others also permits this)
     default: op
   mineplaypunishments.checkban:
     default: op

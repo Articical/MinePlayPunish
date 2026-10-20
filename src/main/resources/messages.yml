@@ -12,6 +12,7 @@ chat-filter-blocked: '<red>Your message was blocked by the chat filter. Please r
 error: '<red><message></red>'
 success: '<green><message></green>'
 history-entry: '<gray><reference> | <type> | <status> | <issued> | <reason></gray>'
+punishment-announcement: '<gold>Mineplay</gold> <dark_gray>»</dark_gray> <yellow><actor> <action> <target>.</yellow> <gray>Reason: <white><reason></white> [<reference>]</gray>'
 service-progress: '<gold>COMMUNITY SERVICE — <completed> / <required> BLOCKS — <percent>% (<state>)</gold>'
 service-milestone: '<yellow><remaining> blocks remaining. Keep going!</yellow>'
 service-released: '<green>Community Service complete. Your saved state has been restored.</green>'
