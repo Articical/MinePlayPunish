@@ -1,0 +1,129 @@
+# MineplayPunishments 1.x. All timestamps and database times are UTC.
+# Restart for database/server-id changes. /mp admin reload handles other settings.
+server:
+  id: mineplay-smp
+database:
+  type: SQLITE
+  file: punishments.db
+  wal-enabled: true
+website:
+  enabled: true
+  base-url: https://www.mineplay.co.uk
+  api-url: https://www.mineplay.co.uk/api/moderation/server
+  # Supply via the server process environment. Values are never logged.
+  credential-env: MINEPLAY_MODERATION_API_TOKEN
+  sync-interval-seconds: 5
+  connection-timeout-seconds: 5
+  request-timeout-seconds: 15
+  retry-backoff-seconds: 10
+  max-retry-backoff-seconds: 300
+punishments:
+  maximum-reason-length: 1000
+  bans:
+    enabled: true
+    check-on-login: true
+    kick-online-targets: true
+  mutes:
+    enabled: true
+    block-public-chat: true
+    block-private-messages: true
+    # Both these labels and namespace:label forms are denied.
+    # Include aliases provided by your installed messaging plugins.
+    blocked-commands: [msg, tell, w, whisper, m, pm, message, reply, r, me, mail]
+  warnings:
+    enabled: true
+    notify-on-next-login: true
+    expiration-days: 0 # zero keeps warnings indefinitely
+  kicks:
+    enabled: true
+    remote-command-expiry-seconds: 30
+  escalation:
+    enabled: false # automatic escalation is deliberately unsupported; enabling is rejected
+chat-filter:
+  enabled: true
+  # Public Paper chat only. Empty lists block nothing; no default banned-word list.
+  # Literal whole words/phrases, ignoring case after Unicode normalization.
+  # Example entries only: 'sampleword' or 'sample phrase'.
+  banned-words: []
+  # RE2/J expressions search normalized chat, ignoring case.
+  # Example only: 'example[-_ ]?pattern' or '^demo[0-9]{1,3}$'.
+  # Use YAML single quotes for backslashes, e.g. '\bexample\b'.
+  # Lookarounds/backreferences are unsupported; oversized compilation is rejected.
+  regex-patterns: []
+  # Limits: 256 literals (128 chars each), 32 regexes (256 chars each).
+  # Messages over 4096 chars are blocked while at least one filter rule is active.
+  # Edit these lists, then run /mp admin reload; invalid rules keep the last good filter.
+permissions:
+  # Assign one explicit rank node in LuckPerms, e.g. mineplaypunishments.rank.100.
+  # An actor must have a strictly higher rank; bypass.staff permits an override.
+  ranks: [10, 50, 100, 200]
+  protected-rank: 10000
+community-service:
+  enabled: true # admissions remain inactive until the full prison/quarry layout is valid
+  default-required-blocks: 250
+  minimum-blocks: 10
+  maximum-blocks: 10000
+  # Up to six distinct presets within minimum/maximum-blocks; Custom is always offered.
+  gui-block-presets: [100, 250, 500, 1000, 2500, 5000]
+  maximum-prisoners: 20
+  # Full jail boundary, separate from the mineable stone deposit below.
+  # Leave ALL fields null for the legacy quarry footprint plus four blocks of height.
+  # An explicit prison uses the exact selected cuboid; include all walkways/headroom.
+  # /mp admin prison copyquarry preserves an old whole-jail selection before shrinking quarry.
+  # Prison bounds must enclose the quarry in the same world. No stone scan or quarry-volume cap.
+  prison:
+    world: null
+    pos1: null
+    pos2: null
+  quarry:
+    world: world
+    # Only the mineable deposit: ordinary configured stone/air, within the prison.
+    pos1: null
+    pos2: null
+    # A safe arrival anywhere inside the prison; release/fallback must be outside it.
+    arrival: null
+    release: null
+    fallback: null
+    maximum-volume: 50000
+  equipment:
+    mode: SNAPSHOT_AND_REPLACE # only safe supported inventory mode
+    default-pickaxe: WOODEN_PICKAXE
+    allowed-pickaxes: [WOODEN_PICKAXE, STONE_PICKAXE]
+    prevent-durability-loss: true
+    keep-prison-items: false
+  mining:
+    allowed-blocks: [STONE, COBBLESTONE, DEEPSLATE]
+    regenerated-block: STONE
+    suppress-drops: true
+    suppress-xp: true
+  regeneration:
+    enabled: true
+    delay-ticks: 60
+    max-blocks-per-tick: 20
+    persistent-queue: true
+  restrictions:
+    prevent-teleport-escape: true
+    prevent-item-transfer: true
+    prevent-block-placement: true
+    prevent-pvp: true
+    prevent-external-damage: true
+    allowed-commands: [service progress, help, rules, mp acknowledge]
+  progress:
+    actionbar-enabled: true
+    bossbar-enabled: true
+    milestone-interval: 50
+appeals:
+  enabled: true
+  url-base: https://www.mineplay.co.uk/appeal/
+  local-token-provisioning-fallback: PENDING_STAFF_RECOVERY
+sync:
+  durable-outbox: true
+  durable-inbox: true
+  reconcile-on-startup: true
+  batch-size: 100
+  conflict-policy: REQUIRE_RECONCILIATION
+logging:
+  audit-actions: true
+  log-api-errors: true
+  log-punishment-revocations: true
+  log-community-service-completions: true

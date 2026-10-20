@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "requestId": "f734163c-36f8-4797-aa68-6456631d2444",
+  "serverId": "mineplay-smp",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "6cb61c3c-c38a-42dc-bf29-c883476458c3",
+      "serverId": "mineplay-smp",
+      "eventType": "punishment.created",
+      "timestamp": "2026-10-18T12:00:01Z",
+      "targetPlayerUuid": "b5365a9b-5196-4447-88ea-3132a899ae61",
+      "punishmentId": "5b294650-976d-4050-9103-5c8d2b1b78e8",
+      "revision": 1,
+      "payload": {
+        "type": "BAN",
+        "reference": "MP-7F42A9",
+        "reason": "Repeated griefing after a warning",
+        "expiresAt": "2026-10-25T12:00:00Z",
+        "source": "WEBSITE",
+        "actor": "staff:123"
+      }
+    }
+  ]
+}

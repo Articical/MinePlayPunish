@@ -1,0 +1,18 @@
+{
+  "actionId": "b556d267-e372-4497-b6aa-eb754787dfb1",
+  "type": "CREATE_COMMUNITY_SERVICE",
+  "target": {
+    "uuid": "b5365a9b-5196-4447-88ea-3132a899ae61",
+    "lastKnownName": "ExamplePlayer"
+  },
+  "punishmentId": "9b066663-079e-4b71-9d9d-4ac91b23a4eb",
+  "expectedRevision": 0,
+  "staffId": "staff:123",
+  "issuedAt": "2026-10-18T12:00:00Z",
+  "validUntil": "2026-10-19T12:00:00Z",
+  "payload": {
+    "reason": "Repair work following quarry damage",
+    "blocks": 250,
+    "tool": "WOODEN_PICKAXE"
+  }
+}

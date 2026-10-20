@@ -1,0 +1,127 @@
+name: MineplayPunishments
+version: '${version}'
+main: cloud.mineplay.punishments.MineplayPunishments
+api-version: '26.3'
+author: Mineplay
+website: https://www.mineplay.co.uk
+description: Standalone SQLite moderation, community service and website integration
+softdepend: [LuckPerms, WorldGuard, Essentials, Chatter]
+commands:
+  punish:
+    description: Open the staff punishment menu for a player
+    usage: /punish <player|uuid>
+    permission: mineplaypunishments.gui
+
+  ban:
+    description: Mineplay ban command
+    usage: /ban
+
+  tempban:
+    description: Mineplay tempban command
+    usage: /tempban
+
+  unban:
+    description: Mineplay unban command
+    usage: /unban
+
+  mute:
+    description: Mineplay mute command
+    usage: /mute
+
+  tempmute:
+    description: Mineplay tempmute command
+    usage: /tempmute
+
+  unmute:
+    description: Mineplay unmute command
+    usage: /unmute
+
+  warn:
+    description: Mineplay warn command
+    usage: /warn
+
+  kick:
+    description: Mineplay kick command
+    usage: /kick
+
+  service:
+    description: Issue, extend, release or check a Community Service sentence
+    usage: /service [issue] <player> <blocks> <reason> [--tool wooden|stone], or /service add|release|progress
+
+  history:
+    description: Mineplay history command
+    usage: /history
+
+  checkban:
+    description: Mineplay checkban command
+    usage: /checkban
+
+  checkmute:
+    description: Mineplay checkmute command
+    usage: /checkmute
+
+  mp:
+    description: Mineplay mp command
+    usage: /mp admin status|sync|reload|recover|quarry|prison, /mp acknowledge <id>, or /mp appeal <id>
+
+permissions:
+  mineplaypunishments.gui:
+    description: Open punishment menus (individual action permissions are also required)
+    default: op
+  mineplaypunishments.ban:
+    default: op
+  mineplaypunishments.tempban:
+    default: op
+  mineplaypunishments.unban:
+    default: op
+  mineplaypunishments.mute:
+    default: op
+  mineplaypunishments.tempmute:
+    default: op
+  mineplaypunishments.unmute:
+    default: op
+  mineplaypunishments.warn:
+    default: op
+  mineplaypunishments.kick:
+    default: op
+  mineplaypunishments.service.issue:
+    default: op
+  mineplaypunishments.service.modify:
+    default: op
+  mineplaypunishments.service.release:
+    default: op
+  mineplaypunishments.service.progress.others:
+    default: op
+  mineplaypunishments.history:
+    default: op
+  mineplaypunishments.history.others:
+    default: op
+  mineplaypunishments.checkban:
+    default: op
+  mineplaypunishments.checkmute:
+    default: op
+  mineplaypunishments.admin:
+    default: op
+  mineplaypunishments.admin.reload:
+    default: op
+  mineplaypunishments.admin.sync:
+    default: op
+  mineplaypunishments.admin.recover:
+    default: op
+  mineplaypunishments.admin.quarry:
+    default: op
+  mineplaypunishments.appeal:
+    default: op
+  mineplaypunishments.bypass.staff:
+    default: false
+  mineplaypunishments.protected:
+    default: false
+  mineplaypunishments.rank.10:
+    default: false
+  mineplaypunishments.rank.50:
+    default: false
+  mineplaypunishments.rank.100:
+    default: false
+  mineplaypunishments.rank.200:
+    default: false
+

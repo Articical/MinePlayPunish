@@ -1,0 +1,353 @@
+openapi: 3.1.0
+info:
+  title: Mineplay Punishments Server API
+  version: 1.0.0
+  description: |
+    Contract to implement in the existing ASP.NET Core website. This repository implements
+    the Paper client, not these endpoints. Every response echoes the request UUID and the
+    authenticated server ID. HTTPS is mandatory; redirects are rejected. Server credentials
+    must not authenticate ordinary website users. All timestamps are UTC ending in Z.
+servers:
+  - url: https://www.mineplay.co.uk/api/moderation/server
+security:
+  - serverCredential: []
+paths:
+  /reconciliation:
+    get:
+      operationId: reconcileServer
+      summary: Replay every retained command after the cursor, including offline revocations
+      description: |
+        Called on every plugin startup. Establish a stable snapshot high-water mark on the
+        first page and return all command outcomes through it in order. Do not return an
+        authoritative active-list replacement. A cursor must never skip an unreturned command.
+        Keep a cursor and its associated snapshot valid across reconnects and response loss.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+        - $ref: '#/components/parameters/ServerId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Ordered delta page; empty page still carries a nonempty cursor
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ActionPage'
+                  - type: object
+                    required: [snapshotRevision]
+                    properties:
+                      snapshotRevision: { type: string, minLength: 1, maxLength: 128 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/ReconciliationRequired' }
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
+  /actions:
+    get:
+      operationId: pollServerActions
+      summary: Poll the durable per-server command stream
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+        - $ref: '#/components/parameters/ServerId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Ordered page. Cursor is durably committed with all local action outcomes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/ReconciliationRequired' }
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
+  /actions/acknowledgements:
+    post:
+      operationId: acknowledgeActions
+      summary: Persist idempotent plugin commit or rejection outcomes
+      description: |
+        applied=true means SQLite committed and the enforcement cache was refreshed. Kick
+        delivery and community-service inventory restoration are separately reported events.
+        Never call a community-service release restored solely from this acknowledgement.
+        Deduplicate by (serverId, actionId). Repeated equal outcomes must return success.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Envelope'
+                - type: object
+                  required: [acknowledgements]
+                  properties:
+                    acknowledgements:
+                      type: array
+                      minItems: 1
+                      maxItems: 1000
+                      items: { $ref: '#/components/schemas/ActionOutcome' }
+      responses:
+        '200':
+          description: Only identifiers durably accepted in PostgreSQL; partial acceptance is allowed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [acceptedActionIds]
+                    properties:
+                      acceptedActionIds:
+                        type: array
+                        uniqueItems: true
+                        items: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
+  /events:
+    post:
+      operationId: receivePluginEvents
+      summary: Receive a batch from the SQLite outbox
+      description: |
+        Deduplicate durably by (serverId,eventId). Commit before returning acceptedEventIds.
+        Verify punishment revisions; retain out-of-order events for reconciliation, never
+        silently overwrite a newer decision. Actor names and reasons are untrusted text.
+        Payloads never contain inventory snapshots, appeal tokens, or credential material.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Envelope'
+                - type: object
+                  required: [events]
+                  properties:
+                    events:
+                      type: array
+                      minItems: 1
+                      maxItems: 1000
+                      items: { $ref: '#/components/schemas/Event' }
+      responses:
+        '200':
+          description: Includes duplicate event IDs already committed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [acceptedEventIds]
+                    properties:
+                      acceptedEventIds:
+                        type: array
+                        uniqueItems: true
+                        items: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
+  /appeals/provision:
+    post:
+      operationId: provisionAppealLink
+      summary: Register or retrieve one stable backend-generated secret link
+      description: |
+        Generate at least 32 random bytes with a cryptographic RNG, base64url without padding.
+        Commit the token binding in PostgreSQL before responding. A repeat of the same
+        (serverId,provisioningId) MUST return the identical URL, even after response loss.
+        A fresh provisioningId for an existing punishment requests explicit rotation.
+        Verify punishmentId/targetPlayerId bindings against received event context. A 409
+        may be used when the corresponding creation event has not arrived yet.
+        Token-bearing responses require Cache-Control:no-store and must never be logged.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Envelope'
+                - type: object
+                  required: [provisioningId, punishmentId, targetPlayerId]
+                  properties:
+                    provisioningId: { type: string, format: uuid }
+                    punishmentId: { type: string, format: uuid }
+                    targetPlayerId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: A usable, backend-registered dedicated appeal URL
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [provisioningId, punishmentId, appealUrl]
+                    properties:
+                      provisioningId: { type: string, format: uuid }
+                      punishmentId: { type: string, format: uuid }
+                      appealUrl: { $ref: '#/components/schemas/AppealUrl' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/ReconciliationRequired' }
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
+components:
+  securitySchemes:
+    serverCredential:
+      type: http
+      scheme: bearer
+      description: Separate revocable credential per server; identify the permitted server from its verified credential
+  parameters:
+    RequestId:
+      in: header
+      name: X-Request-Id
+      required: true
+      schema: { type: string, format: uuid }
+    ServerHeader:
+      in: header
+      name: X-Server-Id
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+    ServerId:
+      in: query
+      name: serverId
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+    Cursor:
+      in: query
+      name: cursor
+      required: true
+      description: Empty only before the first committed response; opaque, URL-encoded thereafter
+      schema: { type: string, maxLength: 512 }
+    Limit:
+      in: query
+      name: limit
+      required: true
+      schema: { type: integer, minimum: 1, maximum: 1000 }
+  responses:
+    Unauthorized:
+      description: Missing or invalid credential; no command or event side effects
+    Forbidden:
+      description: Credential does not authorize the requested server
+    ReconciliationRequired:
+      description: Unknown cursor, identity conflict, or missing punishment context. Require explicit investigation; do not reset state.
+    Retry:
+      description: Transient failure; client retains durable work and retries with bounded exponential backoff
+  schemas:
+    Envelope:
+      type: object
+      required: [schemaVersion, requestId, serverId]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        requestId: { type: string, format: uuid }
+        serverId: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+    ActionPage:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          required: [actions, cursor, hasMore]
+          properties:
+            actions:
+              type: array
+              maxItems: 1000
+              items: { $ref: '#/components/schemas/Action' }
+            cursor: { type: string, minLength: 1, maxLength: 512 }
+            hasMore: { type: boolean }
+    Action:
+      type: object
+      additionalProperties: false
+      required: [actionId, type, target, punishmentId, staffId, issuedAt, validUntil, payload]
+      properties:
+        actionId: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [CREATE_BAN, CREATE_MUTE, CREATE_WARNING, CREATE_KICK, CREATE_COMMUNITY_SERVICE, REVOKE_PUNISHMENT, MODIFY_EXPIRATION, ADD_SERVICE_BLOCKS, SET_SERVICE_BLOCKS, RELEASE_SERVICE, ROTATE_APPEAL_TOKEN]
+        target:
+          type: object
+          additionalProperties: false
+          required: [uuid]
+          properties:
+            uuid: { type: string, format: uuid }
+            lastKnownName:
+              type: [string, 'null']
+              pattern: '^[A-Za-z0-9_]{1,16}$'
+        punishmentId: { type: string, format: uuid }
+        expectedRevision:
+          type: [integer, 'null']
+          minimum: 0
+          description: Omit, null or zero for creation. Required current revision for every mutation.
+        staffId: { type: string, minLength: 1, maxLength: 128 }
+        issuedAt: { type: string, format: date-time, pattern: 'Z$' }
+        validUntil:
+          type: string
+          format: date-time
+          pattern: 'Z$'
+          description: Required command expiry. Kicks are additionally clamped to issuedAt plus configured 30 seconds.
+        payload:
+          type: object
+          additionalProperties: false
+          properties:
+            reason: { type: string, minLength: 1, maxLength: 1000 }
+            expiresAt: { type: [string, 'null'], format: date-time, pattern: 'Z$' }
+            blocks: { type: integer, minimum: 1, maximum: 1000000 }
+            tool: { type: string, enum: [WOODEN_PICKAXE, STONE_PICKAXE] }
+            appealUrl: { $ref: '#/components/schemas/AppealUrl' }
+      description: |
+        Payloads are strictly allowlisted per action; see website-integration.md. reason is
+        required for creation. expiresAt is required for MODIFY_EXPIRATION (null=permanent).
+        blocks is required for CREATE_COMMUNITY_SERVICE, ADD_SERVICE_BLOCKS and SET_SERVICE_BLOCKS.
+        appealUrl is required for remote ROTATE_APPEAL_TOKEN. Unknown fields/actions reject.
+        Plugin configured block limits also apply. SET_SERVICE_BLOCKS supports appeal reduction;
+        reducing to completed progress requests safe restoration, not snapshot deletion.
+    ActionOutcome:
+      type: object
+      additionalProperties: false
+      required: [actionId, applied, code]
+      properties:
+        actionId: { type: string, format: uuid }
+        applied: { type: boolean }
+        code:
+          type: string
+          description: Stable result code, e.g. APPLIED, REVISION_CONFLICT, INVALID_ACTION, EXPIRED, QUARRY_UNAVAILABLE
+        punishmentId: { type: string, format: uuid }
+        revision: { type: integer, minimum: 1 }
+    Event:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, eventId, serverId, eventType, timestamp, targetPlayerUuid, punishmentId, revision, payload]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        eventId: { type: string, format: uuid }
+        serverId: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+        eventType:
+          type: string
+          description: Versioned domain event; includes punishment.*, warning.*, kick.*, community_service.*
+        timestamp: { type: string, format: date-time, pattern: 'Z$' }
+        targetPlayerUuid: { type: string, format: uuid }
+        punishmentId: { type: string, format: uuid }
+        revision: { type: integer, minimum: 1 }
+        payload:
+          type: object
+          description: Event-specific public data and actor; never an inventory snapshot or appeal credential
+          additionalProperties: true
+    AppealUrl:
+      type: string
+      format: uri
+      pattern: '^https://www\.mineplay\.co\.uk/appeal/[A-Za-z0-9_-]{43,128}$'
+      description: Backend-registered 256-bit-minimum base64url secret; never publish in event or public history payloads

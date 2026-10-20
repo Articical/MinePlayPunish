@@ -1,0 +1,12 @@
+.gradle/
+.tools/
+build/
+bin/
+run/
+*.db
+*.db-wal
+*.db-shm
+.env
+*.log
+local.properties
+verification/

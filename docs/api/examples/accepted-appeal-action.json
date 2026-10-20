@@ -1,0 +1,16 @@
+{
+  "actionId": "ad38f145-ec89-451e-a091-079b1d375402",
+  "type": "REVOKE_PUNISHMENT",
+  "target": {
+    "uuid": "b5365a9b-5196-4447-88ea-3132a899ae61",
+    "lastKnownName": "ExamplePlayer"
+  },
+  "punishmentId": "5b294650-976d-4050-9103-5c8d2b1b78e8",
+  "expectedRevision": 2,
+  "staffId": "staff:123",
+  "issuedAt": "2026-10-19T09:00:00Z",
+  "validUntil": "2026-10-20T09:00:00Z",
+  "payload": {
+    "reason": "Appeal accepted after staff review"
+  }
+}
