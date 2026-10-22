@@ -87,6 +87,14 @@ the corresponding warning views, so existing staff groups keep access.
 
 ## Prison, quarry and Community Service commands
 
+`mineplaypunishments.prison.build` lets non-prisoners break/place blocks, collect
+normal block drops and use buckets in the protected prison area. It defaults to
+operators. Grant it to a staff group or individual through your permissions plugin;
+for example, `/lp user Player permission set mineplaypunishments.prison.build true`.
+It does not override another plugin's cancellation or a WorldGuard denial, and it
+does not exempt sentenced/recovery players from custody restrictions. Configure
+WorldGuard staff access separately when using the jail/child-quarry region recipe.
+
 The prison is the full confinement area; the quarry is its smaller mineable stone
 deposit. Use `/mp admin prison setpos1` and `setpos2` to select the jail boundary.
 If your existing quarry selection already covers the whole jail, run

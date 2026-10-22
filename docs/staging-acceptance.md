@@ -134,8 +134,10 @@ Use disposable moderator and target accounts and record the client/server versio
   child quarry allowing breaks, a non-operator prisoner with no WorldGuard membership
   or bypass can mine approved stone with the tagged tool and receive one credit.
   The prisoner cannot break jail walls or place blocks anywhere in the prison.
-- [ ] In that same WorldGuard-allowed quarry, an ordinary visitor and an operator
-  without an active sentence still cannot break or place blocks. Confirm that the
+- [ ] In that same WorldGuard-allowed quarry, an ordinary visitor without
+  `mineplaypunishments.prison.build` still cannot break or place blocks. An
+  authorised builder can break/place and receive normal drops when WorldGuard
+  permits it; the same permission cannot bypass an active sentence. Confirm that the
   plugin remains enabled; WorldGuard's mining allowance alone is not prisoner-specific.
 - [ ] Temporarily deny a quarry break through WorldGuard and verify that the block
   remains and no work credit is granted. Repeat with another protection handler and
@@ -175,3 +177,16 @@ Use disposable moderator and target accounts and record the client/server versio
   Only revisioned accepted commands change local enforcement; rejection has no action.
 - [ ] Do not sign off production readiness until this checklist is complete with the
   actual proxy, protection, economy and chat plugin stack.
+
+## Cold-start prison chunks and quiet sync (1.2.1)
+
+- [ ] Restart with no player near a configured prison. Quarry validation succeeds
+  and the service menu remains available without visiting the area first.
+- [ ] Quarry plus arrival/release/fallback chunks have plugin tickets; the rest of
+  a large prison has none. Leave the area idle and verify it remains ready.
+- [ ] Revalidate/reload, edit locations, fail unsafe validation and disable the
+  plugin; confirm obsolete tickets are removed and no persistent force-load flags
+  are introduced. Other plugins' tickets remain intact.
+- [ ] With healthy website sync, ordinary polls produce no repeated console lines.
+  An outage logs once per failure category; recovery logs once. Confirm records
+  still synchronize and retries preserve the durable queue.

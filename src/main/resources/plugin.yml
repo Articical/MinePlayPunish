@@ -95,6 +95,9 @@ permissions:
     default: op
   mineplaypunishments.service.release:
     default: op
+  mineplaypunishments.prison.build:
+    description: Build in the prison when not serving Community Service; other protections still apply
+    default: op
   mineplaypunishments.service.progress.others:
     default: op
   mineplaypunishments.history:

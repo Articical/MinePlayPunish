@@ -40,6 +40,7 @@ public final class CommunityServiceManager implements Listener {
   private final ServiceRepository repository;
   private final NamespacedKey toolKey;
   private final NamespacedKey receiptKey;
+  private final QuarryChunks quarryChunks;
   private final Set<UUID> processing = new HashSet<>(),
       prepared = new HashSet<>(),
       mutating = new HashSet<>();
@@ -66,6 +67,7 @@ public final class CommunityServiceManager implements Listener {
     this.repository = new ServiceRepository(database, service);
     this.toolKey = new NamespacedKey(plugin, "prison_tool");
     this.receiptKey = new NamespacedKey(plugin, "restoration_receipt");
+    this.quarryChunks = new QuarryChunks(plugin);
   }
 
   public void start() {
@@ -86,6 +88,17 @@ public final class CommunityServiceManager implements Listener {
     running = false;
     ready = false;
     if (tickTask != null) tickTask.cancel();
+    try {
+      quarryChunks.close();
+    } catch (RuntimeException failure) {
+      // Remaining shutdown and the startup-failure login guard must still run.
+      plugin
+          .getLogger()
+          .log(
+              java.util.logging.Level.SEVERE,
+              "event=quarry_chunk_cleanup_failed Continuing Community Service shutdown",
+              failure);
+    }
     Bukkit.getOnlinePlayers()
         .forEach(
             p -> {
@@ -98,9 +111,20 @@ public final class CommunityServiceManager implements Listener {
   public void reload() {
     ready = false;
     quarry = null;
+    quarryChunks.close();
     messages = new Messages(plugin);
     protection = PrisonProtection.read(plugin.getConfig());
-    quarry = QuarryConfiguration.load(plugin.getConfig());
+    try {
+      quarry = QuarryConfiguration.load(plugin.getConfig(), quarryChunks::acquire);
+    } catch (RuntimeException failure) {
+      try {
+        quarryChunks.close();
+      } catch (RuntimeException cleanup) {
+        failure.addSuppressed(cleanup);
+      }
+      if (failure instanceof IllegalArgumentException invalid) throw invalid;
+      throw new IllegalArgumentException("Could not prepare quarry chunks", failure);
+    }
     ready = quarry != null;
   }
 
@@ -593,6 +617,7 @@ public final class CommunityServiceManager implements Listener {
     ready =
         quarry != null
             && Bukkit.getWorld(quarry.world().getUID()) != null
+            && quarryChunks.loaded()
             && QuarryConfiguration.safe(quarry.arrival())
             && quarry.safeRelease() != null;
     for (Player player : Bukkit.getOnlinePlayers()) {
@@ -707,13 +732,17 @@ public final class CommunityServiceManager implements Listener {
         || protection.stream().anyMatch(region -> region.contains(location));
   }
 
+  private boolean protectedFromBuilder(Player player, Location location) {
+    return protectedBlock(location) && !player.hasPermission("mineplaypunishments.prison.build");
+  }
+
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void breakBlock(BlockBreakEvent event) {
     Player p = event.getPlayer();
     Block block = event.getBlock();
     boolean inside = quarry != null && quarry.contains(block.getLocation());
     if (!restricted(p.getUniqueId())) {
-      if (protectedBlock(block.getLocation())) event.setCancelled(true);
+      if (protectedFromBuilder(p, block.getLocation())) event.setCancelled(true);
       return;
     }
     Optional<Sentence> sentence = service.sentence(p.getUniqueId());
@@ -815,13 +844,14 @@ public final class CommunityServiceManager implements Listener {
 
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void blockDrops(BlockDropItemEvent e) {
-    if (restricted(e.getPlayer().getUniqueId()) || protectedBlock(e.getBlock().getLocation()))
-      e.setCancelled(true);
+    if (restricted(e.getPlayer().getUniqueId())
+        || protectedFromBuilder(e.getPlayer(), e.getBlock().getLocation())) e.setCancelled(true);
   }
 
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void place(BlockPlaceEvent e) {
-    if (restricted(e.getPlayer().getUniqueId()) || protectedBlock(e.getBlockPlaced().getLocation()))
+    if (restricted(e.getPlayer().getUniqueId())
+        || protectedFromBuilder(e.getPlayer(), e.getBlockPlaced().getLocation()))
       e.setCancelled(true);
   }
 
@@ -993,14 +1023,14 @@ public final class CommunityServiceManager implements Listener {
 
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void bucketFill(PlayerBucketFillEvent e) {
-    if (restricted(e.getPlayer().getUniqueId()) || protectedBlock(e.getBlock().getLocation()))
-      e.setCancelled(true);
+    if (restricted(e.getPlayer().getUniqueId())
+        || protectedFromBuilder(e.getPlayer(), e.getBlock().getLocation())) e.setCancelled(true);
   }
 
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
   public void bucketEmpty(PlayerBucketEmptyEvent e) {
-    if (restricted(e.getPlayer().getUniqueId()) || protectedBlock(e.getBlock().getLocation()))
-      e.setCancelled(true);
+    if (restricted(e.getPlayer().getUniqueId())
+        || protectedFromBuilder(e.getPlayer(), e.getBlock().getLocation())) e.setCancelled(true);
   }
 
   @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -1193,6 +1223,7 @@ public final class CommunityServiceManager implements Listener {
     plugin.saveConfig();
     ready = false;
     quarry = null;
+    quarryChunks.close();
     protection = PrisonProtection.read(plugin.getConfig());
     sender.sendMessage(
         Component.text(
@@ -1272,6 +1303,7 @@ public final class CommunityServiceManager implements Listener {
     plugin.saveConfig();
     ready = false;
     quarry = null;
+    quarryChunks.close();
     protection = PrisonProtection.read(plugin.getConfig());
     sender.sendMessage(
         Component.text(

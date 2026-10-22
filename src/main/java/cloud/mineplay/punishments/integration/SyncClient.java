@@ -17,8 +17,7 @@ public final class SyncClient {
   private final AtomicBoolean stopped = new AtomicBoolean();
   private final AtomicBoolean manualQueued = new AtomicBoolean();
   private final JavaPlugin plugin;
-  private final boolean logFailures;
-  private String lastFailure = "";
+  private final SyncStatusReporter reporter;
 
   public SyncClient(
       JavaPlugin plugin,
@@ -53,7 +52,9 @@ public final class SyncClient {
             config.getInt("punishments.kicks.remote-command-expiry-seconds", 30),
             config.getBoolean("appeals.enabled", true),
             config.getString("appeals.url-base", "https://www.mineplay.co.uk/appeal/"));
-    logFailures = config.getBoolean("logging.log-api-errors", true);
+    reporter =
+        new SyncStatusReporter(
+            plugin.getLogger(), config.getBoolean("logging.log-api-errors", true));
     worker =
         Executors.newSingleThreadScheduledExecutor(
             task -> {
@@ -102,15 +103,7 @@ public final class SyncClient {
 
   private void run(boolean manual) {
     if (stopped.get()) return;
-    boolean ok = engine.cycle(manual);
-    String category = engine.status().split(";", 2)[0];
-    if (!ok && logFailures && !category.equals(lastFailure)) {
-      plugin
-          .getLogger()
-          .warning(
-              "event=website_sync_paused category=" + category + " local_enforcement=retained");
-      lastFailure = category;
-    } else if (ok) lastFailure = "";
+    reporter.report(engine.runCycle(manual));
   }
 
   public void trigger() {

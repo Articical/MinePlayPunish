@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cloud.mineplay"
-version = "1.2.0"
+version = "1.2.1"
 description = "Standalone, locally authoritative Mineplay moderation for Paper"
 
 val javaFormatter = configurations.create("javaFormatter")

@@ -1,4 +1,4 @@
-# Verification record — 20 October 2026
+# Verification record — 21 October 2026
 
 This record describes checks actually performed. It does not certify production readiness.
 
@@ -6,11 +6,11 @@ This record describes checks actually performed. It does not certify production 
 
 - Windows 11, Eclipse Temurin Java **25.0.4.1+1**.
 - Gradle wrapper **9.8.1**, compile API **Paper 26.3.build.200-stable**.
-- Production JAR 1.2.0 build: `gradlew.bat formatJava build --offline --no-daemon --console=plain --warning-mode=fail`.
+- Production JAR 1.2.1 build: `gradlew.bat formatJava build --offline --no-daemon --console=plain --warning-mode=fail`.
 - Latest validation includes the full test suite and optional UK adult preset in that build.
 - **BUILD SUCCESSFUL**. Java source compilation uses `-Xlint:deprecation`,
   `-Xlint:removal` and `-Werror`. These checks cover this source, not dependency internals.
-- **1,325 tests, 0 failures, 0 errors, 0 skipped**.
+- **1,446 tests, 0 failures, 0 errors, 0 skipped**.
 
 | Area | Tests | Evidence |
 | --- | ---: | --- |
@@ -22,14 +22,67 @@ This record describes checks actually performed. It does not certify production 
 | Optional UK adult-community preset | 764 | Delivered YAML and 1.1.0 compatibility; 182 literal cases; 309 independent benign UK messages; 120 regex blocking examples and 152 counterexamples, individually and against the full preset |
 | Chat/connection enforcement listeners | 21 | Four-player cache invalidation regression, targeted enforcement, login fail-closed and reconnect-safe kick delivery; Cached mute, namespaced aliases, storage failure, final connection validation |
 | SQLite/domain | 40 | Warning history after delivery/ack/restart, all statuses and older pages; Migrations, FULL/WAL/FK, rollback, expiry, revocation, warnings, kicks, identity, replay, revisions, restart/cache health |
-| Community Service | 123 | Real SQLite snapshot/progress/restart/recovery, concurrent same-coordinate claims, mining/drop/XP checks, separate prison bounds and quarry validation, complete/unready layout protection, admission and recovery callbacks, empty-slot restoration, idempotent completion, bounded NBT receipts including corrupt gzip |
+| Community Service | 237 | Cold chunk startup, ticket footprint/ownership/rollback, reload/setter/shutdown cleanup, builder permission and custody precedence; Real SQLite snapshot/progress/restart/recovery, concurrent same-coordinate claims, mining/drop/XP checks, separate prison bounds and quarry validation, complete/unready layout protection, admission and recovery callbacks, empty-slot restoration, idempotent completion, bounded NBT receipts including corrupt gzip |
 | Public punishment announcements | 23 | Success-only broadcasts, silent suppression/retries, safe placeholders, no appeal credential leakage, temporary duration rounding and action details |
-| HTTPS sync/API contract | 31 | Mock transport timeouts/auth/outage, durable inbox/outbox/acks, replay/conflicts, appeal rotation races, pagination, shutdown, YAML refs |
+| HTTPS sync/API contract | 38 | Healthy polling/backoff stays quiet, outage categories and one recovery notice; Mock transport timeouts/auth/outage, durable inbox/outbox/acks, replay/conflicts, appeal rotation races, pagination, shutdown, YAML refs |
 
 Local detailed results are in `build/reports/tests/test/index.html` and
 `build/test-results/test/`. The tests use real SQLite files, deterministic clocks,
 mock HTTPS transports and mocked Paper player/event objects as appropriate.
 They do not simulate every behavior of a live Minecraft client or third-party plugin.
+
+## Version 1.2.1 changes and automated checks
+
+Startup validation now prepares only the bounded, deduplicated mining and three
+teleport destination chunks before reading terrain. The new 104 chunk tests cover
+unloaded generated chunks, all static validation before loading, no full-prison
+loading, no implicit generation, ticket ownership, partial failures, repeated reload,
+invalid layout cleanup, setup edits, disabled configuration and shutdown. A simulated
+ticket-removal failure verifies that player saves and listener cleanup still run,
+with the failed ticket retained for a later cleanup attempt.
+
+Ten additional protection cases cover `mineplaypunishments.prison.build`, including
+normal staff breaks/placements/drops/buckets, permission revocation and the precedence
+of all custody/recovery states. Existing plugin cancellations are preserved. The node
+defaults to operators; WorldGuard permissions remain separate.
+
+The sync adapter previously interpreted a healthy scheduled wait as a failed cycle
+and used the changing synchronization timestamp as its error category. It now receives
+an explicit skipped/succeeded/failed outcome. Seven new reporter/engine tests verify
+quiet healthy polling, 299 retry-backoff ticks without requests or repeated warnings,
+first/changed failure notices, one recovery message and the logging preference.
+These tests use simulated HTTPS responses; no production website was contacted.
+
+Current evidence is `verification/prison-chunks-1.2.1-build.log`,
+`verification/test-summary.json` and `verification/artifact.json`.
+
+## Version 1.2.1 isolated Paper cold-start check
+
+The final 1.2.1 artifact ran through two boots of Paper 26.3 build 205 on
+127.0.0.1:25585, with website sync disabled and no online players. A staging-only
+helper prepared a remote stone quarry and three safe destinations, then stopped
+the server. On the next boot it confirmed that all five generated chunks were
+unloaded before MineplayPunishments enabled. The production plugin loaded those
+chunks, acquired exactly five plugin tickets and reported the quarry ready.
+Neither the rest of the prison nor persistent force-load flags were included.
+
+The helper also verified unsafe-terrain rejection, the chunk limit, rejection of
+an ungenerated destination without generating terrain, explicit validation,
+configuration reload, configuration disable and plugin disable. Failed validation
+and disable released the tickets. After Paper processed ticket removal, all five
+chunks successfully unloaded within five ticks. The first helper run attempted
+the final unload in the same tick; its retained evidence led to a delayed check,
+with no production code change.
+
+Both phases passed: **39 preparation assertions and 158 verification assertions**.
+The original staging configuration was restored byte-for-byte, the server stopped,
+and the helper JAR was removed from `run/plugins/`. This checks real Paper chunk
+loading and cleanup, not real-client mining or the production WorldGuard setup.
+
+Evidence: `verification/staging-chunks-1.2.1-prepare.log`,
+`verification/staging-chunks-1.2.1-verify.log`,
+`verification/chunks-1.2.1-smoke-result.json` and the repeatable helper under
+`verification/chunk-smoke/`.
 
 ## Version 1.2.0 regression scope
 
@@ -179,12 +232,12 @@ the 1.1.0 deployment JAR or enable the preset automatically. Evidence is in
 `verification/uk-adult-preset-result.json`. Preset SHA-256:
 `cea6f2332db3eb5d77957e40890e69759e3e57bbf1a0e03f95657d90b0d35802`.
 
-`build/libs/MineplayPunishments-1.1.0.jar`
+`build/libs/MineplayPunishments-1.2.1.jar`
 
 Replace the installed old plugin JAR and fully restart Paper. Install only one copy.
 Earlier versioned artifacts are retained locally for reference.
 
-SHA-256: `ccc131fea8c306d5c75e03501080f5db3ba8f09f29721cfbfbdacf41268fe032`
+SHA-256: `7c16ba6e8264f398d809cb497216408ff00e2df96bb350af2d346c5036f892ff`
 
 The deployment artifact contains plugin metadata, configuration, messages, schema,
 plugin classes and bundled runtime dependencies, including relocated RE2/J 1.8.

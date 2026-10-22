@@ -61,6 +61,15 @@ record QuarryConfiguration(
   }
 
   static QuarryConfiguration load(ConfigurationSection root) {
+    return load(root, (world, bounds, destinations, maximumChunks) -> {});
+  }
+
+  @FunctionalInterface
+  interface ChunkPreparation {
+    void prepare(World world, QuarryBounds bounds, List<Location> destinations, int maximumChunks);
+  }
+
+  static QuarryConfiguration load(ConfigurationSection root, ChunkPreparation chunks) {
     ConfigurationSection c = root.getConfigurationSection("community-service");
     if (c == null || !c.getBoolean("enabled", true)) return null;
     if (!"SNAPSHOT_AND_REPLACE".equals(c.getString("equipment.mode", "SNAPSHOT_AND_REPLACE")))
@@ -143,10 +152,6 @@ record QuarryConfiguration(
       // Only the mining quarry is volume-limited, chunk-checked and terrain-scanned below.
       // The outer prison may include large buildings, unvisited chunks and arbitrary materials.
     }
-    for (int x = bounds.minX() >> 4; x <= bounds.maxX() >> 4; x++)
-      for (int z = bounds.minZ() >> 4; z <= bounds.maxZ() >> 4; z++)
-        if (!world.isChunkLoaded(x, z))
-          throw new IllegalArgumentException("All quarry chunks must be loaded before validation");
     Set<Material> blocks =
         materials(
             c,
@@ -187,6 +192,20 @@ record QuarryConfiguration(
     if (inside(world, prisonBounds, explicitPrison, release)
         || inside(world, prisonBounds, explicitPrison, fallback))
       throw new IllegalArgumentException("Release and fallback must be outside the prison bounds");
+    // Resolve and validate all static settings before loading any chunks. Only the mining
+    // footprint and three teleport destinations need tickets, regardless of prison size.
+    int delayTicks = positive(c, "regeneration.delay-ticks", 60, 12000);
+    int regenerationLimit = positive(c, "regeneration.max-blocks-per-tick", 20, 1000);
+    int maximumPrisoners = positive(c, "maximum-prisoners", 20, 1000);
+    int milestoneInterval = positive(c, "progress.milestone-interval", 50, 100000);
+    if (q.isSet("maximum-loaded-chunks") && !q.isInt("maximum-loaded-chunks"))
+      throw new IllegalArgumentException("quarry.maximum-loaded-chunks must be an integer");
+    int maximumChunks = positive(c, "quarry.maximum-loaded-chunks", 256, 1024);
+    chunks.prepare(world, bounds, List.of(arrival, release, fallback), maximumChunks);
+    for (int x = bounds.minX() >> 4; x <= bounds.maxX() >> 4; x++)
+      for (int z = bounds.minZ() >> 4; z <= bounds.maxZ() >> 4; z++)
+        if (!world.isChunkLoaded(x, z))
+          throw new IllegalArgumentException("All quarry chunks must be loaded before validation");
     for (Location l : List.of(arrival, release, fallback))
       if (!safe(l))
         throw new IllegalArgumentException(
@@ -219,10 +238,10 @@ record QuarryConfiguration(
         Set.copyOf(blocks),
         Set.copyOf(tools),
         regenerated,
-        positive(c, "regeneration.delay-ticks", 60, 12000),
-        positive(c, "regeneration.max-blocks-per-tick", 20, 1000),
-        positive(c, "maximum-prisoners", 20, 1000),
-        positive(c, "progress.milestone-interval", 50, 100000),
+        delayTicks,
+        regenerationLimit,
+        maximumPrisoners,
+        milestoneInterval,
         c.getBoolean("progress.actionbar-enabled", true),
         c.getBoolean("progress.bossbar-enabled", true),
         safe);
@@ -314,8 +333,21 @@ record QuarryConfiguration(
     World w = Bukkit.getWorld(s.getString("world", fallback.getName()));
     if (w == null) throw new IllegalArgumentException("Location world not loaded");
     for (String key : List.of("x", "y", "z"))
-      if (!s.isSet(key) || !Double.isFinite(s.getDouble(key)))
+      if (!(s.get(key) instanceof Number) || !Double.isFinite(s.getDouble(key)))
         throw new IllegalArgumentException("Location requires finite " + key);
+    for (String key : List.of("yaw", "pitch"))
+      if (s.isSet(key) && !(s.get(key) instanceof Number))
+        throw new IllegalArgumentException("Location requires numeric " + key);
+    if (s.getDouble("x") < -30_000_000
+        || s.getDouble("x") > 30_000_000
+        || s.getDouble("z") < -30_000_000
+        || s.getDouble("z") > 30_000_000)
+      throw new IllegalArgumentException("Location exceeds Minecraft coordinate limits");
+    if (s.getDouble("y") < w.getMinHeight() + 1 || s.getDouble("y") >= w.getMaxHeight() - 1)
+      throw new IllegalArgumentException("Location exceeds safe world height limits");
+    if (!Float.isFinite((float) s.getDouble("yaw"))
+        || !Float.isFinite((float) s.getDouble("pitch")))
+      throw new IllegalArgumentException("Location requires finite yaw and pitch");
     return new Location(
         w,
         s.getDouble("x"),

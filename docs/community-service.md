@@ -5,7 +5,7 @@ Community Service uses two areas: the **prison** is the full area where sentence
 ## Quarry setup
 
 Both prison and quarry setup require `mineplaypunishments.admin` and
-`mineplaypunishments.admin.quarry`; there is no separate prison permission. These default
+`mineplaypunishments.admin.quarry`; there is no separate prison setup permission. These default
 to operators. Granting only the quarry node does not grant the parent admin permission.
 With LuckPerms, an authorized
 administrator can grant the two nodes explicitly:
@@ -54,7 +54,7 @@ standing, including your view direction. Console can run `prison copyquarry`, ei
 3. Stand at a safe arrival location **anywhere inside the prison**, such as a walkway outside the mining deposit, and run `/mp admin quarry setspawn`. Keep its floor outside the mineable blocks so mining cannot remove it.
 4. Stand at a safe location **outside the full prison**, not merely outside the quarry, and run `/mp admin quarry setrelease`.
 5. Set another safe location outside the prison with `/mp admin quarry setfallback`. This may be in another existing world and permits recovery if the quarry becomes unavailable.
-6. Run `/mp admin quarry validate` or `/mp admin prison validate`; both validate the complete setup. All quarry chunks must be loaded, the deposit must contain approved stone, and the three player locations must have loaded chunks, solid floors and clear, nonhazardous headroom. Changing any selection or location disables admission until validation succeeds again.
+6. Run `/mp admin quarry validate` or `/mp admin prison validate`; both validate the complete setup. The plugin loads the already-generated quarry and destination chunks and retains them with plugin chunk tickets. The deposit must contain approved stone, and the three player locations must have solid floors and clear, nonhazardous headroom. Changing any selection or location disables admission until validation succeeds again.
 7. Inspect the area yourself and test the server's actual protection and teleport plugins. The plugin cannot know whether a selected stone wall is infrastructure. Protection-plugin cancellations remain authoritative. Do not grant a protection bypass merely to make quarry mining work.
 
 Tab completion follows both paths. `/mp admin ` offers `prison` and `quarry` with the
@@ -91,11 +91,40 @@ prisoners' permitted quarry mining is the exception.
 
 While Community Service is enabled, complete saved prison/quarry bounds protect the
 area as soon as they are saved, even if mining validation fails or admission is not
-ready. This also applies to non-prisoners, staff and operators; operator status is not
-a building bypass. A release or fallback inside protected bounds is refused even
-when the mining layout is unavailable.
+ready. Non-prisoners need `mineplaypunishments.prison.build` to break or place blocks
+there; this permission defaults to operators. A player serving Community Service
+remains restricted even with that permission or operator status. Other protection
+plugins can still deny building. A release or fallback inside protected bounds is
+refused even when the mining layout is unavailable.
 
-`community-service.maximum-prisoners` limits simultaneous online admissions. Additional assigned players remain restricted while waiting. Offline sentences do not occupy an online slot. Do not leave a production quarry configured in chunks that unload while prisoners use it.
+`community-service.maximum-prisoners` limits simultaneous online admissions. Additional assigned players remain restricted while waiting. Offline sentences do not occupy an online slot. The configured mining and destination chunks stay ticketed while Community Service is enabled and valid, including when no players are online.
+
+## Chunk loading on startup and validation
+
+The quarry world and any separate destination world must already exist and be loaded
+by Paper or your world manager. MineplayPunishments does not create or load worlds.
+At startup, explicit validation and configuration reload, it loads only the existing
+chunks intersecting the mining cuboid, plus the arrival, release and fallback chunks.
+It adds plugin chunk tickets to keep those chunks available without nearby players.
+It does not pin the full prison cuboid or set persistent force-load flags.
+
+All required chunks must already have been generated. Visit or pre-generate the
+configured locations before enabling the quarry; the plugin refuses missing terrain
+instead of generating it. Terrain and destination safety checks still run after
+loading. Chunk tickets do not make an unsafe floor, headroom or stone selection safe.
+
+`community-service.quarry.maximum-loaded-chunks` bounds the combined, deduplicated
+mining and destination footprint. The default is **256**, with a permitted range of
+**1–1024**. This is separate from `maximum-volume`, so a long, thin quarry cannot
+load an unbounded strip of chunks. Keep the limit close to the real footprint; plugin
+tickets consume normal server memory and chunk processing resources.
+
+A failed validation releases newly acquired tickets and leaves admission unavailable.
+Changing configuration releases the previous tickets before preparing the new layout.
+Disabling Community Service or stopping the plugin releases its tickets. Tickets
+owned by other plugins and pre-existing persistent force-load flags are not changed.
+A missing or unloaded world requires operator/world-manager repair; chunk tickets do
+not bypass that requirement or custody recovery checks.
 
 ## WorldGuard around the full jail
 
@@ -147,9 +176,11 @@ and [protection flags](https://worldguard.enginehub.org/en/latest/regions/flags/
 
 MineplayPunishments must remain enabled with the matching prison/quarry configuration
 for **prisoner-only mining**. WorldGuard's child-region allowance alone permits
-everyone to break there; this plugin still cancels visitors and operators, prevents
-prisoners from breaking the jail walls, and suppresses drops and XP from qualifying
-mining. Keep prisoner accounts outside WorldGuard membership lists and without
+everyone to break there; this plugin still cancels visitors without
+`mineplaypunishments.prison.build`, prevents prisoners from breaking the jail walls,
+and suppresses drops and XP from qualifying mining. The building permission defaults
+to operators and applies only when they are not serving Community Service; it does
+not override WorldGuard. Keep prisoner accounts outside WorldGuard membership lists and without
 world-wide bypass permissions. A WorldGuard or other protection-plugin cancellation
 is never undone and earns no work credit, including a cancellation later in the event.
 
@@ -197,7 +228,7 @@ The manager observes the break at MONITOR and finalises on the next server tick.
 
 Progress, the pending regeneration position and its audited outbox event commit together. The website transport batches events; mining never performs an HTTP request on the server thread. The queue records world UUID, block coordinates, replacement material and due time. It survives a restart. Unloaded worlds/chunks defer processing. A block is replaced only if it is still air and still belongs to the current quarry; any different block is left untouched. Positions outside a reconfigured quarry remain pending until reviewed and that quarry is deliberately restored. Work is bounded by `regeneration.max-blocks-per-tick`; queue inspection is bounded separately to four times that limit.
 
-Ordinary placement, explosions, pistons, fluids, entity block changes and outside-player mining cannot modify the protected prison area. Administrative commands and arbitrary third-party direct world edits cannot be intercepted universally. Stop admissions and clear prisoners before editing a prison or quarry using WorldEdit or another administrative tool, and validate it again afterwards. An external plugin that deliberately changes drops after all standard handlers also requires integration testing.
+Visitors without `mineplaypunishments.prison.build` cannot break or place blocks in the protected prison area. Explosions, pistons, fluids and entity block changes are also blocked there. Authorized builders still follow other protection plugins, and prisoners remain restricted regardless of their building permission. Administrative commands and arbitrary third-party direct world edits cannot be intercepted universally. Stop admissions and clear prisoners before editing a prison or quarry using WorldEdit or another administrative tool, and validate it again afterwards. An external plugin that deliberately changes drops after all standard handlers also requires integration testing.
 
 Minecraft world saves and SQLite cannot form one atomic transaction. A crash between the actual block break and its deferred local credit can leave an uncredited air block; a crash around regeneration and a world save can leave a missing block. This fails toward missing work/terrain rather than duplicate credit or tradable drops. Inspect and repair quarry terrain after a hard crash. Do not interpret database tests as a proof that unrelated plugins cannot override world state.
 

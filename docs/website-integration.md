@@ -40,6 +40,8 @@ For every GET, the query and `X-Server-Id` must match the identity granted by th
 
 The client uses connection/request timeouts, capped exponential retries and a longer pause for 401/403 or missing credentials. It retains local decisions and queues through every network failure. Unknown 4xx/schema errors pause and retry with an operator-visible category; they never become an unban. Error bodies, tokens and bearer values are not logged. Backend middleware must also redact Authorization, appeal URLs, and token-bearing request/response bodies. Mark provisioning responses `Cache-Control: no-store`.
 
+Console logging reports the first sync failure, a change in failure category, and one recovery notice after a successful attempt. Healthy polling intervals, backoff waits, and repeated retries of the same failure stay quiet. `/mp admin status` still shows the current category and next retry time. `logging.log-api-errors: false` suppresses these API transition notices; a local database initialization failure remains a separate severe startup diagnostic. No response body, bearer credential or appeal token is logged.
+
 ## Action semantics
 
 | Action | Allowed payload fields | Required fields / effect |

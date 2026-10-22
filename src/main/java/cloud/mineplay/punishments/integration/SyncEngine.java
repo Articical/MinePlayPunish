@@ -16,6 +16,17 @@ import java.util.function.*;
 
 /** Runs only on a dedicated sync worker. It holds no Bukkit objects. */
 public final class SyncEngine implements AutoCloseable {
+  public enum CycleOutcome {
+    SUCCEEDED,
+    SKIPPED,
+    FAILED
+  }
+
+  /**
+   * A skipped timer tick is not a failed attempt; category contains only a fixed diagnostic code.
+   */
+  public record CycleResult(CycleOutcome outcome, String category) {}
+
   private final Database database;
   private final PunishmentService service;
   private final SyncSettings settings;
@@ -116,9 +127,15 @@ public final class SyncEngine implements AutoCloseable {
 
   /** Returns whether a cycle succeeded; failures retain every pending durable record. */
   public boolean cycle(boolean manual) {
-    if (closed.get()) return false;
-    if (!settings.enabled()) return true;
-    if (!manual && clock.instant().isBefore(nextAttempt)) return false;
+    if (!closed.get() && !settings.enabled()) return true;
+    return runCycle(manual).outcome() == CycleOutcome.SUCCEEDED;
+  }
+
+  public CycleResult runCycle(boolean manual) {
+    if (closed.get()) return new CycleResult(CycleOutcome.SKIPPED, null);
+    if (!settings.enabled()) return new CycleResult(CycleOutcome.SKIPPED, null);
+    if (!manual && clock.instant().isBefore(nextAttempt))
+      return new CycleResult(CycleOutcome.SKIPPED, null);
     try {
       // Recover a failed cache publication before acknowledging any already committed inbox result.
       if (!service.healthy()) {
@@ -158,11 +175,11 @@ public final class SyncEngine implements AutoCloseable {
       nextAttempt = clock.instant().plusSeconds(settings.intervalSeconds());
       status =
           reconciled ? "Synchronized " + clock.instant() : "Startup reconciliation in progress";
-      return true;
+      return new CycleResult(CycleOutcome.SUCCEEDED, null);
     } catch (RuntimeException failure) {
       if (closed.get()) {
         status = "Stopped";
-        return false;
+        return new CycleResult(CycleOutcome.SKIPPED, null);
       }
       failures = Math.min(failures + 1, 31);
       Throwable cause = failure;
@@ -183,7 +200,7 @@ public final class SyncEngine implements AutoCloseable {
               : settings.backoff(failures - 1);
       nextAttempt = clock.instant().plusSeconds(delay);
       status = category + "; retry after " + nextAttempt + "; local records retained";
-      return false;
+      return new CycleResult(CycleOutcome.FAILED, category);
     }
   }
 

@@ -85,6 +85,9 @@ community-service:
     release: null
     fallback: null
     maximum-volume: 50000
+    # Keep only mining + arrival/release/fallback chunks loaded while configured.
+    # Bound long, thin quarries independently of their block volume (1..1024).
+    maximum-loaded-chunks: 256
   equipment:
     mode: SNAPSHOT_AND_REPLACE # only safe supported inventory mode
     default-pickaxe: WOODEN_PICKAXE

@@ -16,7 +16,7 @@ $env:JAVA_HOME = 'C:\path\to\jdk-25'
 .\gradlew.bat clean build --no-daemon
 ```
 
-Deploy **`build/libs/MineplayPunishments-1.2.0.jar`**, the bundled JAR, to `plugins/`
+Deploy **`build/libs/MineplayPunishments-1.2.1.jar`**, the bundled JAR, to `plugins/`
 and restart Paper. Do not deploy the `-unbundled` or `-sources` JAR. SQLite JDBC,
 Gson, RE2/J and the command parser are bundled; Paper/Adventure and LuckPerms are not.
 LuckPerms is optional but needed to verify offline staff permissions without an explicit override.
@@ -44,6 +44,19 @@ For a new jail, use `/mp admin prison setpos1` and `setpos2` to select the outer
 Only the mining quarry is scanned for stone and limited to 50,000 blocks by default.
 Both command branches need `mineplaypunishments.admin` and `mineplaypunishments.admin.quarry`.
 The [setup guide](docs/community-service.md#quarry-setup) gives the complete sequence.
+
+Version 1.2.1 automatically loads and retains the configured quarry and teleport
+destination chunks at startup. It does not keep the entire prison loaded. Existing
+worlds and generated terrain are required; layout and safety validation still run.
+The optional `community-service.quarry.maximum-loaded-chunks` limit defaults to 256.
+
+Staff with `mineplaypunishments.prison.build` (operators by default) can break,
+place and collect normal block drops in the prison while not serving a sentence.
+WorldGuard and other protection plugins still apply. Active prisoners remain bound
+to quarry and tool restrictions even when they hold that permission.
+
+Website sync is quiet during healthy polling and waits between retries. It logs
+an initial failure, changes in failure category and a single recovery message.
 
 ## Public chat filter
 

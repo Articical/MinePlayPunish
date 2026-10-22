@@ -102,6 +102,66 @@ class SyncEngineTest {
   }
 
   @Test
+  void healthyPollingWaitsAreSkippedRatherThanFailedAttempts() {
+    FakeTransport fake = new FakeTransport();
+    SyncEngine engine = engine(fake, () -> "secret", false);
+    var logger = org.mockito.Mockito.mock(java.util.logging.Logger.class);
+    SyncStatusReporter reporter = new SyncStatusReporter(logger, true);
+    var first = engine.runCycle(false);
+    assertEquals(SyncEngine.CycleOutcome.SUCCEEDED, first.outcome());
+    reporter.report(first);
+    int calls = fake.paths.size();
+    String status = engine.status();
+    for (int tick = 1; tick < 5; tick++) {
+      clock.now = clock.now.plusSeconds(1);
+      var waiting = engine.runCycle(false);
+      assertEquals(SyncEngine.CycleOutcome.SKIPPED, waiting.outcome());
+      assertNull(waiting.category());
+      assertEquals(status, engine.status());
+      assertEquals(calls, fake.paths.size());
+      reporter.report(waiting);
+    }
+    clock.now = clock.now.plusSeconds(1);
+    var next = engine.runCycle(false);
+    assertEquals(SyncEngine.CycleOutcome.SUCCEEDED, next.outcome());
+    reporter.report(next);
+    org.mockito.Mockito.verifyNoInteractions(logger);
+  }
+
+  @Test
+  void failedAttemptBackoffIsSkippedWithoutRequestsOrRepeatedWarning() {
+    AtomicInteger requests = new AtomicInteger();
+    SyncEngine engine =
+        engine(
+            (method, uri, headers, body) -> {
+              requests.incrementAndGet();
+              return CompletableFuture.completedFuture(
+                  new ApiTransport.Response(401, "private response"));
+            },
+            () -> "private-test-credential",
+            false);
+    var logger = org.mockito.Mockito.mock(java.util.logging.Logger.class);
+    SyncStatusReporter reporter = new SyncStatusReporter(logger, true);
+    var first = engine.runCycle(false);
+    assertEquals(SyncEngine.CycleOutcome.FAILED, first.outcome());
+    assertEquals("AUTHENTICATION", first.category());
+    reporter.report(first);
+    int calls = requests.get();
+    for (int tick = 1; tick < 300; tick++) {
+      clock.now = clock.now.plusSeconds(1);
+      var waiting = engine.runCycle(false);
+      assertEquals(SyncEngine.CycleOutcome.SKIPPED, waiting.outcome());
+      reporter.report(waiting);
+    }
+    assertEquals(calls, requests.get());
+    clock.now = clock.now.plusSeconds(1);
+    reporter.report(engine.runCycle(false));
+    org.mockito.Mockito.verify(logger)
+        .warning("event=website_sync_paused category=AUTHENTICATION local_enforcement=retained");
+    org.mockito.Mockito.verifyNoMoreInteractions(logger);
+  }
+
+  @Test
   void offlineWebsiteRetainsLocalEnforcementAndQueuedEvents() {
     UUID id = ban();
     SyncEngine engine =
