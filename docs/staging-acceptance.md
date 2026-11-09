@@ -162,6 +162,26 @@ Use disposable moderator and target accounts and record the client/server versio
 
 ## HTTPS/backend contract
 
+### Player telemetry (1.3.0)
+
+- [ ] Use a registered staging server credential and the dedicated `/players` route.
+  Backfill unpunished historical players; unknown join dates must be skipped, never
+  replaced by directory timestamps. Verify Bedrock names and UTC timestamps.
+- [ ] With the actual Vault provider, check account/no-account/unavailable states,
+  negative/zero balances, currency labels and decimal JSON strings. An unsupported
+  precision or non-finite balance becomes unavailable without rounding.
+- [ ] Join, refresh, quit and reconnect with two clients. Session IDs stay stable
+  through refresh/reload, closures persist, and known login counts do not double count.
+  Check online freshness and last-known logout without treating autosave as a logout.
+- [ ] Lose an accepted HTTP response, then restart while it is pending. Retried
+  player items remain byte-equivalent; newer observations follow with newer revisions.
+- [ ] Inject 429/503 plus `Retry-After`, malformed acknowledgements and a single
+  invalid/conflicting player in a batch. All request lanes respect the delay, retries
+  retain frozen data, and rejection isolation permits other players to progress.
+- [ ] Verify the real website projection, latest-1,000 session retention, encrypted
+  five-address history, MFA/access checks and network-read auditing. No bearer,
+  telemetry body or address history may appear in application/proxy logs.
+
 - [ ] Implement the OpenAPI contract on an authenticated staging backend. Test TLS,
   timeout, 401/403, redirects, credential rotation, invalid schema/request ID/server ID.
 - [ ] Deliver actions twice, reordered, after crash, with changed payload under the

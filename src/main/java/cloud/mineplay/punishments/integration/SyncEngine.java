@@ -4,6 +4,7 @@ import cloud.mineplay.punishments.appeals.AppealLinks;
 import cloud.mineplay.punishments.punishment.Models.*;
 import cloud.mineplay.punishments.punishment.PunishmentService;
 import cloud.mineplay.punishments.storage.Database;
+import cloud.mineplay.punishments.telemetry.TelemetryRepository;
 import com.google.gson.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +37,8 @@ public final class SyncEngine implements AutoCloseable {
   private final Clock clock;
   private final RemoteActionProcessor inbox;
   private final AppealLinks appeals;
+  private final ApiRequestGate requestGate;
+  private final TelemetryPublisher telemetry;
   private boolean reconciled;
   private String reconciliationSnapshot;
   private int failures;
@@ -78,6 +81,34 @@ public final class SyncEngine implements AutoCloseable {
       Clock clock,
       Set<String> allowedTools,
       String defaultTool) {
+    this(
+        database,
+        service,
+        settings,
+        transport,
+        credentials,
+        enforcementChanged,
+        serviceReady,
+        clock,
+        allowedTools,
+        defaultTool,
+        null,
+        ApiRequestGate.unpaced(clock));
+  }
+
+  SyncEngine(
+      Database database,
+      PunishmentService service,
+      SyncSettings settings,
+      ApiTransport transport,
+      Supplier<String> credentials,
+      Runnable enforcementChanged,
+      BooleanSupplier serviceReady,
+      Clock clock,
+      Set<String> allowedTools,
+      String defaultTool,
+      TelemetryRepository telemetryRepository,
+      ApiRequestGate requestGate) {
     this.database = database;
     this.service = service;
     this.settings = settings;
@@ -85,6 +116,15 @@ public final class SyncEngine implements AutoCloseable {
     this.credentials = credentials;
     this.enforcementChanged = enforcementChanged;
     this.clock = clock;
+    this.requestGate = requestGate;
+    this.telemetry =
+        telemetryRepository == null
+            ? null
+            : new TelemetryPublisher(
+                telemetryRepository,
+                settings,
+                clock,
+                payload -> request("POST", "/players", payload));
     appeals = new AppealLinks(settings.appealBase());
     inbox =
         new RemoteActionProcessor(
@@ -100,6 +140,7 @@ public final class SyncEngine implements AutoCloseable {
   }
 
   public void initialize() {
+    if (telemetry != null) telemetry.initialize();
     inbox.initialize().join();
     database
         .write(
@@ -122,7 +163,7 @@ public final class SyncEngine implements AutoCloseable {
   }
 
   public String status() {
-    return status;
+    return telemetry == null ? status : status + "; player_telemetry=" + telemetry.status();
   }
 
   /** Returns whether a cycle succeeded; failures retain every pending durable record. */
@@ -135,6 +176,9 @@ public final class SyncEngine implements AutoCloseable {
     if (closed.get()) return new CycleResult(CycleOutcome.SKIPPED, null);
     if (!settings.enabled()) return new CycleResult(CycleOutcome.SKIPPED, null);
     if (!manual && clock.instant().isBefore(nextAttempt))
+      return new CycleResult(CycleOutcome.SKIPPED, null);
+    // Even a manual sync must respect a server-directed Retry-After shared by all lanes.
+    if (clock.instant().isBefore(requestGate.retryAt()))
       return new CycleResult(CycleOutcome.SKIPPED, null);
     try {
       // Recover a failed cache publication before acknowledging any already committed inbox result.
@@ -157,6 +201,8 @@ public final class SyncEngine implements AutoCloseable {
       } catch (RuntimeException failure) {
         if (pendingFailure == null) pendingFailure = failure;
       }
+      CycleResult telemetryResult =
+          telemetry == null ? new CycleResult(CycleOutcome.SUCCEEDED, null) : telemetry.cycle();
       if (pendingFailure != null) throw pendingFailure;
       database
           .write(
@@ -175,30 +221,23 @@ public final class SyncEngine implements AutoCloseable {
       nextAttempt = clock.instant().plusSeconds(settings.intervalSeconds());
       status =
           reconciled ? "Synchronized " + clock.instant() : "Startup reconciliation in progress";
-      return new CycleResult(CycleOutcome.SUCCEEDED, null);
+      return telemetryResult;
     } catch (RuntimeException failure) {
       if (closed.get()) {
         status = "Stopped";
         return new CycleResult(CycleOutcome.SKIPPED, null);
       }
       failures = Math.min(failures + 1, 31);
-      Throwable cause = failure;
-      while ((cause instanceof CompletionException || cause instanceof ExecutionException)
-          && cause.getCause() != null) cause = cause.getCause();
-      String category =
-          cause instanceof ApiFailure api
-              ? api.category
-              : cause instanceof TimeoutException
-                      || cause instanceof java.net.http.HttpTimeoutException
-                  ? "TIMEOUT"
-                  : cause instanceof IllegalArgumentException
-                      ? "INVALID_RESPONSE"
-                      : cause instanceof SQLException ? "DATABASE_FAILURE" : "UNAVAILABLE";
+      Throwable cause = rootCause(failure);
+      String category = failureCategory(cause);
       long delay =
           category.equals("AUTHENTICATION") || category.equals("CREDENTIAL_MISSING")
               ? settings.maxBackoffSeconds()
               : settings.backoff(failures - 1);
       nextAttempt = clock.instant().plusSeconds(delay);
+      if (cause instanceof ApiFailure api
+          && api.retryAt != null
+          && api.retryAt.isAfter(nextAttempt)) nextAttempt = api.retryAt;
       status = category + "; retry after " + nextAttempt + "; local records retained";
       return new CycleResult(CycleOutcome.FAILED, category);
     }
@@ -502,6 +541,10 @@ public final class SyncEngine implements AutoCloseable {
       payload.addProperty("requestId", requestId);
       payload.addProperty("serverId", settings.serverId());
     }
+    String body = payload == null ? null : payload.toString();
+    if (body != null && body.getBytes(StandardCharsets.UTF_8).length >= ApiProtocol.MAX_BODY_BYTES)
+      throw new ApiFailure("HTTP_REQUEST_TOO_LARGE");
+    requestGate.acquire(closed::get);
     CompletableFuture<ApiTransport.Response> future =
         transport
             .send(
@@ -518,7 +561,7 @@ public final class SyncEngine implements AutoCloseable {
                     requestId,
                     "X-Server-Id",
                     settings.serverId()),
-                payload == null ? null : payload.toString())
+                body)
             .orTimeout(settings.requestTimeout().toMillis(), TimeUnit.MILLISECONDS);
     pendingRequest.set(future);
     if (closed.get()) future.cancel(true);
@@ -531,8 +574,19 @@ public final class SyncEngine implements AutoCloseable {
     if (closed.get()) throw new ApiFailure("STOPPED");
     if (response.status() == 401 || response.status() == 403)
       throw new ApiFailure("AUTHENTICATION");
-    if (response.status() == 408 || response.status() == 429 || response.status() >= 500)
-      throw new ApiFailure("HTTP_TRANSIENT");
+    if (response.status() == 408 || response.status() == 429 || response.status() >= 500) {
+      Instant retryAt = null;
+      if (response.status() == 429 || response.status() == 503) {
+        retryAt =
+            RetryAfter.deadline(response.retryAfter(), clock.instant())
+                .orElse(clock.instant().plusSeconds(settings.backoffSeconds()));
+        requestGate.deferUntil(retryAt);
+      }
+      throw new ApiFailure("HTTP_TRANSIENT", response.status(), retryAt);
+    }
+    if (suffix.equals("/players") && (response.status() == 400 || response.status() == 409))
+      throw new ApiFailure(
+          playerFailure(response.body(), response.status()), response.status(), null);
     if (response.status() != 200) throw new ApiFailure("HTTP_CONTRACT");
     return ApiProtocol.response(response.body(), requestId, settings.serverId());
   }
@@ -554,13 +608,45 @@ public final class SyncEngine implements AutoCloseable {
     return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
 
-  private static final class ApiFailure extends RuntimeException {
-    private final String category;
+  static Throwable rootCause(Throwable failure) {
+    Throwable cause = failure;
+    while ((cause instanceof CompletionException || cause instanceof ExecutionException)
+        && cause.getCause() != null) cause = cause.getCause();
+    return cause;
+  }
 
-    ApiFailure(String category) {
-      super(category);
-      this.category = category;
+  static String failureCategory(Throwable cause) {
+    return cause instanceof ApiFailure api
+        ? api.category
+        : cause instanceof TimeoutException || cause instanceof java.net.http.HttpTimeoutException
+            ? "TIMEOUT"
+            : cause instanceof IllegalArgumentException
+                ? "INVALID_RESPONSE"
+                : cause instanceof SQLException ? "DATABASE_FAILURE" : "UNAVAILABLE";
+  }
+
+  private static String playerFailure(String body, int status) {
+    Set<String> allowed =
+        Set.of(
+            "PLAYER_REVISION_CONFLICT",
+            "PLAYER_OBSERVATION_CONFLICT",
+            "PLAYER_TIMELINE_CONFLICT",
+            "PLAYER_SESSION_CONFLICT");
+    try {
+      if (body == null || body.length() > ApiProtocol.MAX_BODY_BYTES)
+        return "PLAYER_HTTP_" + status;
+      JsonObject error = ApiProtocol.object(JsonParser.parseString(body), "error");
+      if (error.has("error") && error.get("error").isJsonObject())
+        error = error.getAsJsonObject("error");
+      JsonElement code = error.get("code");
+      if (code != null
+          && code.isJsonPrimitive()
+          && code.getAsJsonPrimitive().isString()
+          && allowed.contains(code.getAsString())) return code.getAsString();
+    } catch (RuntimeException ignored) {
+      // Unknown error formats are diagnosed by HTTP status; never include their text.
     }
+    return "PLAYER_HTTP_" + status;
   }
 
   @Override

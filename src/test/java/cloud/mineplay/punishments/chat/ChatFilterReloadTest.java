@@ -12,6 +12,8 @@ import cloud.mineplay.punishments.gui.PunishMenu;
 import cloud.mineplay.punishments.integration.SyncClient;
 import cloud.mineplay.punishments.punishment.PunishmentService;
 import cloud.mineplay.punishments.storage.Database;
+import cloud.mineplay.punishments.telemetry.TelemetryCollector;
+import cloud.mineplay.punishments.telemetry.TelemetrySettings;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.nio.file.Path;
@@ -43,6 +45,7 @@ class ChatFilterReloadTest {
   private EnforcementListener enforcement;
   private PunishMenu menus;
   private SyncClient previousSync;
+  private TelemetryCollector telemetry;
 
   @BeforeEach
   void setup() throws Exception {
@@ -62,6 +65,7 @@ class ChatFilterReloadTest {
     enforcement = mock(EnforcementListener.class);
     menus = mock(PunishMenu.class);
     previousSync = mock(SyncClient.class);
+    telemetry = mock(TelemetryCollector.class);
     when(previousSync.stoppedCleanly()).thenReturn(true);
     listener = new ChatFilterListener(plugin, ChatFilter.read(config));
     field("settings", previousSettings);
@@ -73,6 +77,7 @@ class ChatFilterReloadTest {
     field("menus", menus);
     field("sync", previousSync);
     field("chatFilter", listener);
+    field("telemetryCollector", telemetry);
   }
 
   @Test
@@ -150,6 +155,29 @@ class ChatFilterReloadTest {
           2,
           syncs.constructed().size(),
           "Previous service configuration is restarted after a committed stop");
+      verify(syncs.constructed().getFirst()).stop();
+      verify(syncs.constructed().getLast()).start();
+      assertFiltered("forbidden", true);
+      assertFiltered("replacement", false);
+    }
+  }
+
+  @Test
+  void telemetryReloadFailureDoesNotPublishCandidateChatRules() {
+    String previous = config.saveToString();
+    newRulesOnReload();
+    doThrow(new IllegalStateException("collection scheduler unavailable"))
+        .doNothing()
+        .when(telemetry)
+        .reconfigure(any(TelemetrySettings.class));
+    try (MockedStatic<PluginSettings> settings = mockStatic(PluginSettings.class);
+        MockedConstruction<Messages> messages = mockConstruction(Messages.class);
+        MockedConstruction<SyncClient> syncs = mockConstruction(SyncClient.class)) {
+      settings.when(() -> PluginSettings.read(config, directory)).thenReturn(nextSettings);
+      assertThrows(IllegalArgumentException.class, plugin::reloadSettings);
+      assertEquals(previous, config.saveToString());
+      assertSame(previousSettings, plugin.settings());
+      assertEquals(2, syncs.constructed().size());
       verify(syncs.constructed().getFirst()).stop();
       verify(syncs.constructed().getLast()).start();
       assertFiltered("forbidden", true);

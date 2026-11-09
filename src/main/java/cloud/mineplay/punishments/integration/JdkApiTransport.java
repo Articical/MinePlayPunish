@@ -31,6 +31,8 @@ public final class JdkApiTransport implements ApiTransport {
       String method, URI uri, Map<String, String> headers, String body) {
     if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getUserInfo() != null)
       return CompletableFuture.failedFuture(ApiProtocol.invalid("HTTPS endpoint"));
+    if (body != null && body.getBytes(StandardCharsets.UTF_8).length >= ApiProtocol.MAX_BODY_BYTES)
+      return CompletableFuture.failedFuture(ApiProtocol.invalid("request size"));
     HttpRequest.Builder request = HttpRequest.newBuilder(uri).timeout(timeout);
     headers.forEach(request::header);
     request.method(
@@ -41,7 +43,12 @@ public final class JdkApiTransport implements ApiTransport {
     return client
         .sendAsync(request.build(), ignored -> new LimitedBody())
         .orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
-        .thenApply(response -> new Response(response.statusCode(), response.body()));
+        .thenApply(
+            response ->
+                new Response(
+                    response.statusCode(),
+                    response.body(),
+                    response.headers().firstValue("Retry-After").orElse(null)));
   }
 
   @Override

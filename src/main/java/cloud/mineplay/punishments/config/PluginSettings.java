@@ -15,6 +15,7 @@ public record PluginSettings(
     List<Integer> ranks,
     int protectedRank) {
   public static PluginSettings read(FileConfiguration c, Path directory) {
+    cloud.mineplay.punishments.telemetry.TelemetrySettings.read(c);
     String id = c.getString("server.id", "");
     require(
         id.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"),

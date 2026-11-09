@@ -17,6 +17,14 @@ website:
   request-timeout-seconds: 15
   retry-backoff-seconds: 10
   max-retry-backoff-seconds: 300
+player-telemetry:
+  # Uses the same server ID, bearer credential and HTTP worker as moderation sync.
+  # Also requires website.enabled; histories stay in SQLite across restarts.
+  enabled: true
+  # Online observations older than 2 minutes appear stale on the website.
+  refresh-seconds: 30
+  # Bukkit/Vault collection is bounded per tick; file/SQL/HTTP work runs off-thread.
+  players-per-tick: 5
 punishments:
   maximum-reason-length: 1000
   bans:

@@ -2,6 +2,10 @@
 
 This record describes checks actually performed. It does not certify production readiness.
 
+For the newer 1.3.0 player-telemetry build, see the
+[9 November 2026 verification record](telemetry-verification.md). The results below
+describe the earlier releases and their historical artifacts.
+
 ## Build and automated tests
 
 - Windows 11, Eclipse Temurin Java **25.0.4.1+1**.

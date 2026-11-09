@@ -13,6 +13,9 @@ import cloud.mineplay.punishments.integration.SyncClient;
 import cloud.mineplay.punishments.punishment.Models.Type;
 import cloud.mineplay.punishments.punishment.PunishmentService;
 import cloud.mineplay.punishments.storage.Database;
+import cloud.mineplay.punishments.telemetry.TelemetryCollector;
+import cloud.mineplay.punishments.telemetry.TelemetryRepository;
+import cloud.mineplay.punishments.telemetry.TelemetrySettings;
 import java.time.Clock;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -26,6 +29,8 @@ public final class MineplayPunishments extends JavaPlugin {
   private CommunityServiceManager community;
   private EnforcementListener enforcement;
   private SyncClient sync;
+  private TelemetryRepository telemetry;
+  private TelemetryCollector telemetryCollector;
   private PunishMenu menus;
   private PunishmentAnnouncements announcements;
   private ChatFilterListener chatFilter;
@@ -60,7 +65,8 @@ public final class MineplayPunishments extends JavaPlugin {
       enforcement = new EnforcementListener(this);
       Bukkit.getPluginManager().registerEvents(enforcement, this);
       Bukkit.getPluginManager().registerEvents(chatFilter, this);
-      sync = new SyncClient(this, database, punishments, enforcement::enforceAll, community::ready);
+      initializeTelemetry();
+      sync = createSyncClient();
       new ModerationCommands(this).register();
       menus = new PunishMenu(this);
       menus.register();
@@ -88,6 +94,7 @@ public final class MineplayPunishments extends JavaPlugin {
     } catch (Exception ex) {
       logFailure("startup_failed", ex);
       Bukkit.getScheduler().cancelTasks(this);
+      stopTelemetry(false);
       if (menus != null) menus.closeAll();
       if (sync != null) sync.stop();
       if (community != null) community.stop();
@@ -155,8 +162,7 @@ public final class MineplayPunishments extends JavaPlugin {
       applying = true;
       if (menus != null) menus.closeAll();
       community.reload();
-      candidate =
-          new SyncClient(this, database, punishments, enforcement::enforceAll, community::ready);
+      candidate = createSyncClient();
       previousSync.stop();
       stoppedPrevious = true;
       if (!previousSync.stoppedCleanly())
@@ -167,6 +173,7 @@ public final class MineplayPunishments extends JavaPlugin {
       enforcement.reload();
       sync = candidate;
       sync.start();
+      telemetryCollector.reconfigure(TelemetrySettings.read(getConfig()));
       chatFilter.replace(nextFilter);
     } catch (Exception ex) {
       if (candidate != null) candidate.stop();
@@ -179,11 +186,10 @@ public final class MineplayPunishments extends JavaPlugin {
           community.reload();
           configurePolicies();
           enforcement.reload();
+          telemetryCollector.reconfigure(TelemetrySettings.read(getConfig()));
         }
         if (stoppedPrevious && previousSync.stoppedCleanly()) {
-          sync =
-              new SyncClient(
-                  this, database, punishments, enforcement::enforceAll, community::ready);
+          sync = createSyncClient();
           sync.start();
         }
       } catch (Exception restore) {
@@ -195,6 +201,8 @@ public final class MineplayPunishments extends JavaPlugin {
 
   @Override
   public void onDisable() {
+    // Capture final observations before the SQLite worker drains; reload never closes sessions.
+    stopTelemetry(true);
     if (menus != null) menus.closeAll();
     if (sync != null) sync.stop();
     if (community != null) community.stop();
@@ -205,6 +213,47 @@ public final class MineplayPunishments extends JavaPlugin {
         logFailure("database_close", failure);
       }
     }
+  }
+
+  private SyncClient createSyncClient() {
+    return new SyncClient(
+        this,
+        database,
+        punishments,
+        enforcement::enforceAll,
+        community::ready,
+        TelemetrySettings.read(getConfig()).enabled() ? telemetry : null);
+  }
+
+  private void stopTelemetry(boolean shutdown) {
+    try {
+      if (telemetryCollector != null) telemetryCollector.stop(shutdown);
+    } catch (RuntimeException failure) {
+      logFailure("telemetry_shutdown_failed", failure);
+    }
+  }
+
+  private void initializeTelemetry() {
+    telemetry = new TelemetryRepository(database, settings.serverId());
+    TelemetryCollector collector =
+        new TelemetryCollector(
+            this,
+            telemetry,
+            settings.serverId(),
+            Clock.systemUTC(),
+            TelemetrySettings.read(getConfig()));
+    telemetryCollector = collector;
+    // FIFO SQLite jobs initialize the schema before observations. Register collection now
+    // so an early join/quit cannot fall through a deferred startup callback.
+    telemetry
+        .initialize()
+        .whenComplete(
+            (ignored, failure) -> {
+              if (failure != null) {
+                logFailure("telemetry_initialization_failed", failure);
+              }
+            });
+    collector.start();
   }
 
   private void configurePolicies() {

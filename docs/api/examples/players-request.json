@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "requestId": "c9087476-17b9-4695-a0d4-d774dd1c4437",
+  "serverId": "mineplay-smp",
+  "players": [
+    {
+      "playerUuid": "6f526a58-4c5b-4d42-8e10-07cc392d5765",
+      "playerName": "ExamplePlayer",
+      "revision": 1,
+      "observedAt": "2026-11-09T12:00:00Z",
+      "firstJoinedAt": "2026-10-01T15:00:00Z",
+      "lastJoinedAt": "2026-11-09T11:00:00Z",
+      "lastLeftAt": "2026-11-08T20:00:00Z",
+      "online": true,
+      "totalPlaySeconds": 86400,
+      "loginCount": 12,
+      "economy": {
+        "status": "AVAILABLE",
+        "balance": "1250.500000",
+        "provider": "Your Vault economy provider",
+        "currency": "coins"
+      },
+      "sessions": [
+        {
+          "sessionId": "ea75d708-3404-4c39-a09f-6590283ed856",
+          "joinedAt": "2026-11-09T11:00:00Z",
+          "leftAt": null
+        }
+      ],
+      "recentAddresses": [
+        {
+          "address": "192.0.2.10",
+          "lastSeenAt": "2026-11-09T11:00:00Z"
+        }
+      ]
+    }
+  ]
+}

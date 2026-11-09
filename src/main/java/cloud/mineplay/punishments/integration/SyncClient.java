@@ -2,6 +2,7 @@ package cloud.mineplay.punishments.integration;
 
 import cloud.mineplay.punishments.punishment.PunishmentService;
 import cloud.mineplay.punishments.storage.Database;
+import cloud.mineplay.punishments.telemetry.TelemetryRepository;
 import java.time.*;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -33,6 +34,16 @@ public final class SyncClient {
       PunishmentService service,
       Runnable enforcementChanged,
       BooleanSupplier serviceReady) {
+    this(plugin, database, service, enforcementChanged, serviceReady, null);
+  }
+
+  public SyncClient(
+      JavaPlugin plugin,
+      Database database,
+      PunishmentService service,
+      Runnable enforcementChanged,
+      BooleanSupplier serviceReady,
+      TelemetryRepository telemetry) {
     this.plugin = plugin;
     FileConfiguration config = plugin.getConfig();
     SyncSettings settings =
@@ -83,7 +94,9 @@ public final class SyncClient {
             serviceReady,
             Clock.systemUTC(),
             Set.copyOf(config.getStringList("community-service.equipment.allowed-pickaxes")),
-            config.getString("community-service.equipment.default-pickaxe", "WOODEN_PICKAXE"));
+            config.getString("community-service.equipment.default-pickaxe", "WOODEN_PICKAXE"),
+            telemetry,
+            ApiRequestGate.shared());
   }
 
   public void start() {

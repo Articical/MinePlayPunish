@@ -34,6 +34,7 @@ The root is `https://www.mineplay.co.uk/api/moderation/server`. All successful r
 | `GET /actions?...` | Ongoing ordered remote command pages. |
 | `POST /actions/acknowledgements` | Durable applied/rejected outcomes. Return `acceptedActionIds`. |
 | `POST /events` | Durable plugin event batches. Return `acceptedEventIds`. |
+| `POST /players` | Atomic roster/telemetry snapshots. Return `acceptedPlayerIds` and `ignoredPlayerIds`. |
 | `POST /appeals/provision` | Register/retrieve a stable appeal URL using a durable `provisioningId`. |
 
 For every GET, the query and `X-Server-Id` must match the identity granted by the bearer credential. For POST, check the body server identity too. Reject unauthorised server access before reading or mutating its command/event data. Use separate cryptographically strong credentials for each server, store credential hashes, and support an overlap period for rotation. Secrets come from the process environment and are read before each request. A running process generally cannot see later parent-shell environment changes: rotate by restarting with the new environment, or preload two environment variables and reload `credential-env` to select the new one. Revoke the old credential only after confirming the new one works.
@@ -43,6 +44,12 @@ The client uses connection/request timeouts, capped exponential retries and a lo
 Console logging reports the first sync failure, a change in failure category, and one recovery notice after a successful attempt. Healthy polling intervals, backoff waits, and repeated retries of the same failure stay quiet. `/mp admin status` still shows the current category and next retry time. `logging.log-api-errors: false` suppresses these API transition notices; a local database initialization failure remains a separate severe startup diagnostic. No response body, bearer credential or appeal token is logged.
 
 ## Action semantics
+
+The additive [player telemetry publisher](player-telemetry.md) uses the same client
+and credentials, with private telemetry tables and a separate `/players` request.
+Its revisions and session IDs are independent of punishment revisions and events.
+All client requests share rate pacing and `Retry-After` handling. Rejected telemetry
+items are isolated and diagnosed without stopping the punishment publishing lane.
 
 | Action | Allowed payload fields | Required fields / effect |
 | --- | --- | --- |

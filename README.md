@@ -16,11 +16,12 @@ $env:JAVA_HOME = 'C:\path\to\jdk-25'
 .\gradlew.bat clean build --no-daemon
 ```
 
-Deploy **`build/libs/MineplayPunishments-1.2.1.jar`**, the bundled JAR, to `plugins/`
+Deploy **`build/libs/MineplayPunishments-1.3.0.jar`**, the bundled JAR, to `plugins/`
 and restart Paper. Do not deploy the `-unbundled` or `-sources` JAR. SQLite JDBC,
-Gson, RE2/J and the command parser are bundled; Paper/Adventure and LuckPerms are not.
+Gson, RE2/J and the command parser are bundled; Paper/Adventure, Vault and LuckPerms are not.
 LuckPerms is optional but needed to verify offline staff permissions without an explicit override.
 The plugin has no dependency on LiteBans or Essentials moderation.
+Vault is optional and supplies economy observations when an economy provider is registered.
 
 For Eclipse, import as an **Existing Gradle Project** using Buildship and Java 25.
 IntelliJ can open `settings.gradle.kts` directly. `./gradlew formatJava` formats sources.
@@ -57,6 +58,18 @@ to quarry and tool restrictions even when they hold that permission.
 
 Website sync is quiet during healthy polling and waits between retries. It logs
 an initial failure, changes in failure category and a single recovery message.
+
+## Player telemetry
+
+Version 1.3.0 publishes the historical player roster, online observations, login
+sessions, economy status and recent addresses to the dedicated `/players` endpoint.
+It uses the existing server ID, bearer credential and HTTPS sync worker. Telemetry
+has its own durable SQLite tables and never enters punishment `/events`.
+
+Online players refresh every 30 seconds by default. Historical joins are read from
+actual saved player fields; unavailable counters and logout times remain unknown.
+See [player telemetry](docs/player-telemetry.md) for configuration, retry behaviour,
+history limitations and validation boundaries.
 
 ## Public chat filter
 

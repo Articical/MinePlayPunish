@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cloud.mineplay"
-version = "1.2.1"
+version = "1.3.0"
 description = "Standalone, locally authoritative Mineplay moderation for Paper"
 
 val javaFormatter = configurations.create("javaFormatter")
@@ -15,6 +15,7 @@ val pluginVersion = version.toString()
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://jitpack.io") { content { includeGroup("com.github.MilkBowl") } }
 }
 
 java {
@@ -27,12 +28,14 @@ dependencies {
     add(mockitoAgent.name, "org.mockito:mockito-core:5.18.0") { isTransitive = false }
     compileOnly("io.papermc.paper:paper-api:26.3.build.200-stable")
     compileOnly("net.luckperms:api:5.5")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") { exclude(group = "org.bukkit", module = "bukkit") }
     implementation("org.xerial:sqlite-jdbc:3.50.3.0")
     implementation("com.google.code.gson:gson:2.13.1")
     implementation("com.google.re2j:re2j:1.8")
     implementation("info.picocli:picocli:4.7.7")
     testImplementation("io.papermc.paper:paper-api:26.3.build.200-stable")
     testImplementation("net.luckperms:api:5.5")
+    testImplementation("com.github.MilkBowl:VaultAPI:1.7") { exclude(group = "org.bukkit", module = "bukkit") }
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
     testImplementation("org.mockito:mockito-core:5.18.0")

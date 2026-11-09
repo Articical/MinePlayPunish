@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Mineplay Punishments Server API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Contract to implement in the existing ASP.NET Core website. This repository implements
     the Paper client, not these endpoints. Every response echoes the request UUID and the
@@ -12,6 +12,65 @@ servers:
 security:
   - serverCredential: []
 paths:
+  /players:
+    post:
+      operationId: observeServerPlayers
+      summary: Publish the historical roster and current player observations
+      description: |
+        Atomic batch of 1-100 distinct player UUIDs, under 1 MiB UTF-8 including envelope.
+        Body IDs match headers. Shares the moderation 240 requests/minute/IP limit.
+        Identity is (serverId,playerUuid,revision). Identical canonical JSON at the same
+        revision is idempotent; older revisions are ignored. Array order, representation,
+        and null versus omission affect identity. Never alter a frozen retry snapshot.
+        Newer revisions cannot regress observedAt/latest join/logout, advance first join,
+        or clear known logout. Sessions merge by stable ID; closed sessions cannot change
+        or reopen. Invalid/conflicting items reject the entire batch. See player-telemetry.md.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ServerHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Envelope'
+                - type: object
+                  required: [players]
+                  properties:
+                    players:
+                      type: array
+                      minItems: 1
+                      maxItems: 100
+                      items: { $ref: '#/components/schemas/PlayerTelemetry' }
+              unevaluatedProperties: false
+      responses:
+        '200':
+          description: Whole transaction committed; accepted and ignored UUIDs partition the submitted players
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [acceptedPlayerIds, ignoredPlayerIds]
+                    properties:
+                      acceptedPlayerIds:
+                        type: array
+                        uniqueItems: true
+                        items: { $ref: '#/components/schemas/PlayerUuid' }
+                      ignoredPlayerIds:
+                        type: array
+                        uniqueItems: true
+                        items: { $ref: '#/components/schemas/PlayerUuid' }
+                unevaluatedProperties: false
+        '400': { description: Invalid envelope or player item; entire batch rejected }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: PLAYER_REVISION_CONFLICT, PLAYER_OBSERVATION_CONFLICT, PLAYER_TIMELINE_CONFLICT or PLAYER_SESSION_CONFLICT; entire batch rejected
+        '429': { $ref: '#/components/responses/Retry' }
+        '503': { $ref: '#/components/responses/Retry' }
   /reconciliation:
     get:
       operationId: reconcileServer
@@ -249,7 +308,101 @@ components:
       description: Unknown cursor, identity conflict, or missing punishment context. Require explicit investigation; do not reset state.
     Retry:
       description: Transient failure; client retains durable work and retries with bounded exponential backoff
+      headers:
+        Retry-After:
+          description: Minimum retry delay in seconds or an HTTP-date; also applies to other moderation requests
+          schema: { type: string }
   schemas:
+    PlayerUuid:
+      type: string
+      format: uuid
+      not: { const: '00000000-0000-0000-0000-000000000000' }
+    PlayerUtcTime:
+      type: string
+      format: date-time
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?Z$'
+      description: UTC at or after Unix epoch; observations no more than five minutes ahead of website time
+    PlayerTelemetry:
+      type: object
+      additionalProperties: false
+      required: [playerUuid, playerName, revision, observedAt, firstJoinedAt, lastJoinedAt, online, economy, sessions, recentAddresses]
+      properties:
+        playerUuid: { $ref: '#/components/schemas/PlayerUuid' }
+        playerName:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[^\u0000-\u001F\u007F-\u009F]+$'
+        revision: { type: integer, minimum: 1, maximum: 9223372036854775806 }
+        observedAt: { $ref: '#/components/schemas/PlayerUtcTime' }
+        firstJoinedAt: { $ref: '#/components/schemas/PlayerUtcTime' }
+        lastJoinedAt: { $ref: '#/components/schemas/PlayerUtcTime' }
+        lastLeftAt:
+          anyOf:
+            - $ref: '#/components/schemas/PlayerUtcTime'
+            - { type: 'null' }
+        online: { type: boolean }
+        totalPlaySeconds: { type: [integer, 'null'], minimum: 0, maximum: 9223372036854775806 }
+        loginCount: { type: [integer, 'null'], minimum: 0, maximum: 9223372036854775806 }
+        economy: { $ref: '#/components/schemas/PlayerEconomy' }
+        sessions:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/PlayerSession' }
+        recentAddresses:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/PlayerAddress' }
+      description: |
+        firstJoinedAt <= lastJoinedAt <= observedAt, all history <= observedAt.
+        If online, lastLeftAt <= lastJoinedAt; if offline, lastLeftAt >= lastJoinedAt
+        when known. Null counters mean unknown. Never derive join times from names,
+        punishments, directory reads or file modification dates.
+    PlayerEconomy:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [AVAILABLE, UNAVAILABLE, NOT_INSTALLED, NO_ACCOUNT] }
+        balance:
+          type: [string, 'null']
+          pattern: '^-?(0|[1-9][0-9]{0,17})(\.[0-9]{1,6})?$'
+        provider: { type: [string, 'null'], minLength: 1, maxLength: 128, pattern: '^(?!\s*$)[^\u0000-\u001F\u007F-\u009F]+$' }
+        currency: { type: [string, 'null'], minLength: 1, maxLength: 32, pattern: '^(?!\s*$)[^\u0000-\u001F\u007F-\u009F]+$' }
+      allOf:
+        - if:
+            properties: { status: { const: AVAILABLE } }
+          then:
+            required: [balance, provider, currency]
+            properties:
+              balance: { type: string }
+              provider: { type: string }
+              currency: { type: string }
+          else:
+            properties: { balance: { type: 'null' } }
+    PlayerSession:
+      type: object
+      additionalProperties: false
+      required: [sessionId, joinedAt]
+      properties:
+        sessionId: { $ref: '#/components/schemas/PlayerUuid' }
+        joinedAt: { $ref: '#/components/schemas/PlayerUtcTime' }
+        leftAt:
+          anyOf:
+            - $ref: '#/components/schemas/PlayerUtcTime'
+            - { type: 'null' }
+      description: Distinct stable IDs; first join <= joinedAt <= latest join; joinedAt <= leftAt <= observedAt
+    PlayerAddress:
+      type: object
+      additionalProperties: false
+      required: [address, lastSeenAt]
+      properties:
+        address: { type: string, minLength: 2, maxLength: 45 }
+        lastSeenAt: { $ref: '#/components/schemas/PlayerUtcTime' }
+      description: |
+        Literal IPv4/IPv6 only, no DNS, port, brackets, scope, whitespace or abbreviated IPv4.
+        Normalize mapped IPv6 to IPv4 and deduplicate normalized addresses.
+        firstJoinedAt <= lastSeenAt <= observedAt. Retain five distinct recent addresses.
     Envelope:
       type: object
       required: [schemaVersion, requestId, serverId]

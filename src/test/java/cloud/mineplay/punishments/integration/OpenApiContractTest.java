@@ -18,7 +18,7 @@ class OpenApiContractTest {
     }
     Map<?, ?> document = assertInstanceOf(Map.class, parsed);
     assertEquals("3.1.0", document.get("openapi"));
-    assertEquals(5, ((Map<?, ?>) document.get("paths")).size());
+    assertEquals(6, ((Map<?, ?>) document.get("paths")).size());
     validateReferences(document, document);
   }
 

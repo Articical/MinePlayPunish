@@ -5,7 +5,7 @@ api-version: '26.3'
 author: Mineplay
 website: https://www.mineplay.co.uk
 description: Standalone SQLite moderation, community service and website integration
-softdepend: [LuckPerms, WorldGuard, Essentials, Chatter]
+softdepend: [LuckPerms, WorldGuard, Essentials, Chatter, Vault]
 commands:
   punish:
     description: Open the staff punishment menu for a player
