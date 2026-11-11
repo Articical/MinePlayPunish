@@ -65,7 +65,7 @@ chat-filter:
   # Use YAML single quotes for backslashes, e.g. '\bexample\b'.
   # Lookarounds/backreferences are unsupported; oversized compilation is rejected.
   regex-patterns: []
-  # Limits: 256 literals (128 chars each), 32 regexes (256 chars each).
+  # Limits: 256 literals (128 chars each), 40 regexes (256 chars each).
   # Messages over 4096 chars are blocked while at least one filter rule is active.
   # Edit these lists, then run /mp admin reload; invalid rules keep the last good filter.
 permissions:
