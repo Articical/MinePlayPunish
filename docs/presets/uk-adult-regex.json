@@ -569,6 +569,8 @@
         "I will swat the fly",
         "I will share the public server address"
       ]
-    }
+    },
+    {"id":"paedophile-pedo-obfuscations","comment":"Whole-word UK/US paedo, pedo and paedophile or pedophile variants, including punctuation and common digit substitutions.","pattern":"(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])(?:p[\\s._-]*[a4][\\s._-]*[e3][\\s._-]*d|p[\\s._-]*[e3][\\s._-]*d)[\\s._-]*[o0](?:[\\s._-]*p[\\s._-]*h[\\s._-]*[i1!][\\s._-]*l[\\s._-]*[e3](?:[\\s._-]*[s5$])?)?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])","blocked":["paedo","p.e.d.o","p4ed0phile","pedophile"],"allowed":["pedology","orthopaedic","pedometer"]},
+    {"id":"nonce-obfuscations","comment":"Whole-word nonce variants, including punctuated and leetspeak forms; may also match non-abusive technical uses of nonce.","pattern":"(^|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])n[\\s._-]*[o0][\\s._-]*n[\\s._-]*c[\\s._-]*[e3](?:[\\s._-]*(?:[s5$]|y))?($|[^\\p{L}\\p{M}\\p{N}\\p{Pc}])","blocked":["nonce","n0nce","n.o.n.c.e","nonces"],"allowed":["pronounced","noncentral","announcement"]}
   ]
 }

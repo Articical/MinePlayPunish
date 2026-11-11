@@ -46,7 +46,7 @@ public final class ChatFilter {
               "(^|[^" + WORD + "])(?:" + Pattern.quote(literal) + ")($|[^" + WORD + "])",
               Pattern.CASE_INSENSITIVE));
     }
-    List<String> regexes = entries(root, "chat-filter.regex-patterns", 32, 256);
+    List<String> regexes = entries(root, "chat-filter.regex-patterns", 40, 256);
     for (int i = 0; i < regexes.size(); i++) {
       String key = indexed("chat-filter.regex-patterns", i);
       String regex = regexes.get(i);

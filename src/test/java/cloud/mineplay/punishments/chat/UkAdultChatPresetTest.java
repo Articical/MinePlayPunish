@@ -43,7 +43,7 @@ class UkAdultChatPresetTest {
     var words = yaml.getStringList("chat-filter.banned-words");
     var patterns = yaml.getStringList("chat-filter.regex-patterns");
     assertTrue(words.size() <= 256);
-    assertTrue(patterns.size() <= 32);
+    assertTrue(patterns.size() <= 40);
     assertEquals(words.size(), new HashSet<>(words).size());
     assertEquals(patterns.size(), new HashSet<>(patterns).size());
     JsonObject literals =
