@@ -4,13 +4,13 @@
 # Do not replace the rest of config.yml. This is not a standalone plugin config.
 # Apply with /mp admin reload. Existing failed regex edits must be repaired.
 # Ordinary profanity remains allowed. This is not a Mojang/Xbox compliance certificate.
-# Literal forms are exact whole words/phrases; obfuscation coverage is the 32 named rules.
+# Literal forms are exact whole words/phrases; obfuscation coverage is the 34 named rules.
 # Some quoted/reclaimed slurs still match. Report those privately to staff.
 # No keyword filter guarantees zero false positives or catches every evasion.
 # Source, exclusions, tests and policy notes: docs/chat-filter-uk-adult.md
 chat-filter:
   enabled: true
-  # 182 literal entries; includes plurals and compounds.
+  # 202 literal entries; includes plurals and compounds.
   banned-words:
     # Racial and ethnic slurs; whole words, including common plural and compound forms
     - 'nigger'
@@ -198,7 +198,28 @@ chat-filter:
     - 'poofterboys'
     - 'shemalefucker'
     - 'shemalefuckers'
-  # 32 RE2/J rules; keep YAML single quotes and backslashes unchanged.
+    # Child sexual abuse accusations and related insults
+    - 'paedophile'
+    - 'paedophiles'
+    - 'pedophile'
+    - 'pedophiles'
+    - 'paedophilic'
+    - 'pedophilic'
+    - 'paedo'
+    - 'paedos'
+    - 'pedo'
+    - 'pedos'
+    - 'nonce'
+    - 'nonces'
+    - 'noncey'
+    - 'noncy'
+    - 'kiddy fiddler'
+    - 'kiddy fiddlers'
+    - 'child molester'
+    - 'child molesters'
+    - 'child predator'
+    - 'child predators'
+  # 34 RE2/J rules; keep YAML single quotes and backslashes unchanged.
   # NFKC/case folding/FORMAT removal already happen in the plugin.
   # Explicit Unicode boundaries prevent matches inside longer ordinary words.
   # Anchored rules deliberately leave longer/ambiguous messages for staff review.
@@ -267,3 +288,7 @@ chat-filter:
     - '^\s*(?:h[\s._-]*[i1!][\s._-]*[t7][\s._-]*l[\s._-]*[e3][\s._-]*r\s+(?:was\s+r[i1!]ght|did\s+n[o0]thing\s+(?:wr[o0]ng|bad)|should\s+have\s+finished)|bring\s+back\s+h[i1!][t7]l[e3]r)[.!?]*\s*$'
     # standalone-dox-swat-address-threat: Whole-message first-person doxxing, swatting or address-exposure threat. The verbs and address support selected digit substitutions; reporting and prevention advice are allowed.
     - '^\s*i(?:[\x{27}\x{2019}]ll|\s+will|\s+am\s+going\s+to)\s+(?:d[o0]xx?\s+(?:you|u)|[s5$]w[a4][t7]\s+(?:you|u|(?:your|ur)\s+h[o0]u[s5$][e3])|l[e3][a4]k\s+(?:your|ur)\s+[a4]ddr[e3][s5$][s5$])[.!?]*\s*$'
+    # paedophile-pedo-obfuscations: Whole-word UK/US paedo, pedo and paedophile or pedophile variants, including punctuation and common digit substitutions.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])(?:p[\s._-]*[a4][\s._-]*[e3][\s._-]*d|p[\s._-]*[e3][\s._-]*d)[\s._-]*[o0](?:[\s._-]*p[\s._-]*h[\s._-]*[i1!][\s._-]*l[\s._-]*[e3](?:[\s._-]*[s5$])?)?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
+    # nonce-obfuscations: Whole-word nonce variants, including punctuated and leetspeak forms; may also match non-abusive technical uses of nonce.
+    - '(^|[^\p{L}\p{M}\p{N}\p{Pc}])n[\s._-]*[o0][\s._-]*n[\s._-]*c[\s._-]*[e3](?:[\s._-]*(?:[s5$]|y))?($|[^\p{L}\p{M}\p{N}\p{Pc}])'
