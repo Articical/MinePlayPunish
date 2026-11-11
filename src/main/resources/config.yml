@@ -17,6 +17,13 @@ website:
   request-timeout-seconds: 15
   retry-backoff-seconds: 10
   max-retry-backoff-seconds: 300
+anti-afk:
+  enabled: true
+  # 15 minutes without qualifying activity; warn 2 minutes before removal.
+  idle-timeout-seconds: 900
+  warning-seconds: 120
+  # One lightweight player pass every 5 seconds; no per-movement processing.
+  check-interval-seconds: 5
 player-telemetry:
   # Uses the same server ID, bearer credential and HTTP worker as moderation sync.
   # Also requires website.enabled; histories stay in SQLite across restarts.

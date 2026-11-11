@@ -1,6 +1,6 @@
 # Player telemetry publisher
 
-MineplayPunishments 1.3.0 publishes observations to
+MineplayPunishments publishes observations, introduced in 1.3.0, to
 `POST https://www.mineplay.co.uk/api/moderation/server/players`. It reuses
 `server.id`, the existing bearer credential environment variable, HTTPS transport
 and sync worker. Headers include `Content-Type: application/json`, `X-Server-Id`
@@ -9,7 +9,7 @@ No telemetry is submitted to punishment `/events`.
 
 ## Install and configure
 
-Replace the old plugin JAR with `MineplayPunishments-1.3.0.jar`, retain the plugin
+Replace the old plugin JAR with `MineplayPunishments-1.4.1.jar`, retain the plugin
 data directory and restart Paper. Install only one MineplayPunishments JAR. Existing
 configurations receive these defaults without needing their files replaced:
 
@@ -19,6 +19,10 @@ player-telemetry:
   refresh-seconds: 30
   players-per-tick: 5
 ```
+
+Version 1.4.1 fixes a collector exception when two queued observations both have
+unknown login counts or playtime. It preserves those unknown values as null and
+requires no database reset. See the [regression record](telemetry-null-fix-verification.md).
 
 Both `website.enabled` and `player-telemetry.enabled` must be true. The refresh
 interval accepts 10–60 seconds; collection accepts 1–100 players per tick. Bukkit

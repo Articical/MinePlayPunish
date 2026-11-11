@@ -34,6 +34,7 @@ Use `mineplaypunishments:<command>` when another plugin owns a conflicting short
 | `/checkban <player>` | `checkban` |
 | `/checkmute <player>` | `checkmute` |
 | `/mp acknowledge <punishment-uuid>` | Only the affected player, no staff authority |
+| `/mpactive <code>` | Player-only presence confirmation using the current idle-warning code; no permission required |
 | `/mp appeal <punishment-uuid> [--rotate]` | `appeal` |
 | `/mp admin status` | `admin` |
 | `/mp admin sync` | `admin` and `admin.sync` |
@@ -47,6 +48,19 @@ and rank nodes default to false. Progress for self and acknowledging one's own w
 do not grant any ability to change a punishment. Console may run moderation commands;
 prison/quarry position setters require an in-game player and recovery requires the
 target online. `prison copyquarry` and either validation command also work from console.
+
+## Idle removal
+
+`/mpactive <code>` confirms the one-time code in your current idle warning. Clicking
+the warning runs `/mineplaypunishments:mpactive <code>` to avoid command conflicts.
+An arbitrary, expired or already-used code does not reset the timer. This command
+is available during Community Service and inventory recovery without unlocking
+any other command or changing custody. Do not add it to a custom mute or command
+block list in this or another plugin.
+
+`mineplaypunishments.afk.bypass` exempts players from the idle detector and defaults
+to operators. Grant or deny it through your permissions plugin. It has no effect
+on moderation or prison restrictions. See [anti-AFK configuration](anti-afk.md).
 
 ## Public announcements and silent commands
 

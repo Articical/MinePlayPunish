@@ -70,6 +70,34 @@ class MessagesTest {
                 "MP-TEST"));
   }
 
+  @Test
+  void oldMessagesFileHasReadableIdleWarningsAndDoesNotChangeOnUpgrade() throws Exception {
+    Path file = writeMessages(null);
+    YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file.toFile());
+    for (String key :
+        java.util.List.of(
+            "anti-afk-warning", "anti-afk-confirmed", "anti-afk-invalid", "anti-afk-kick"))
+      yaml.set(key, null);
+    Files.writeString(file, yaml.saveToString());
+    String original = Files.readString(file);
+    Messages messages = messages();
+    var plain = PlainTextComponentSerializer.plainText();
+    assertEquals(
+        "You will be disconnected for inactivity in 120 seconds.\n"
+            + "Click this message or type /mpactive ab12cd34 to confirm you are here.",
+        plain.serialize(messages.text("anti-afk-warning", "seconds", "120", "code", "ab12cd34")));
+    assertEquals(
+        "Presence confirmed. Your idle timer has been reset.",
+        plain.serialize(messages.text("anti-afk-confirmed")));
+    assertEquals(
+        "No matching active idle check. Use the code from your latest warning.",
+        plain.serialize(messages.text("anti-afk-invalid")));
+    assertEquals(
+        "Disconnected for inactivity.\nYou can reconnect when you are ready to play.",
+        plain.serialize(messages.text("anti-afk-kick")));
+    assertEquals(original, Files.readString(file));
+  }
+
   private Path writeMessages(String feedback) throws Exception {
     return writeMessages(feedback, null);
   }

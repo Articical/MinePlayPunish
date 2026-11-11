@@ -15,6 +15,7 @@ public record PluginSettings(
     List<Integer> ranks,
     int protectedRank) {
   public static PluginSettings read(FileConfiguration c, Path directory) {
+    cloud.mineplay.punishments.afk.AfkSettings.read(c);
     cloud.mineplay.punishments.telemetry.TelemetrySettings.read(c);
     String id = c.getString("server.id", "");
     require(

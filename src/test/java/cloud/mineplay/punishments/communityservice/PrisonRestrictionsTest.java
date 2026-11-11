@@ -72,6 +72,33 @@ class PrisonRestrictionsTest {
     verify(event).setCancelled(true);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"/mpactive ab12cd34", "/mineplaypunishments:mpactive ab12cd34"})
+  void recoveryAllowsOnlyScopedPresenceConfirmationEvenWithoutAQuarry(String command) {
+    PlayerCommandPreprocessEvent event = mock(PlayerCommandPreprocessEvent.class);
+    when(event.getPlayer()).thenReturn(player);
+    when(event.getMessage()).thenReturn(command);
+    manager.command(event);
+    verify(event, never()).setCancelled(true);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/otherplugin:mpactive ab12cd34",
+        "/mpactive",
+        "/mpactive ab12cd34 extra",
+        "/mpactive ab12cd34;/spawn",
+        "/mpactive <click:run_command:/spawn>"
+      })
+  void presenceExceptionCannotExposeAnotherCommandOrAdditionalArguments(String command) {
+    PlayerCommandPreprocessEvent event = mock(PlayerCommandPreprocessEvent.class);
+    when(event.getPlayer()).thenReturn(player);
+    when(event.getMessage()).thenReturn(command);
+    manager.command(event);
+    verify(event).setCancelled(true);
+  }
+
   @Test
   void recoveryPreventsDroppingSwappingAndExternalMenus() {
     PlayerDropItemEvent drop = mock(PlayerDropItemEvent.class);

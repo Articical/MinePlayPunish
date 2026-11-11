@@ -905,6 +905,11 @@ public final class CommunityServiceManager implements Listener {
     String text = e.getMessage().substring(1).toLowerCase(Locale.ROOT).strip();
     String[] words = text.split("\\s+");
     String root = words[0];
+    // Presence confirmation cannot move inventory, change custody or run staff commands.
+    // Match only our command namespace, including while the quarry is unavailable.
+    if ((root.equals("mpactive") || root.equals("mineplaypunishments:mpactive"))
+        && words.length == 2
+        && words[1].matches("[a-z0-9]{1,64}")) return;
     int namespace = root.lastIndexOf(':');
     if (namespace >= 0) root = root.substring(namespace + 1);
     String normal =

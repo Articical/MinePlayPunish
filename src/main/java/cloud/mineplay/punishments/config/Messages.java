@@ -55,6 +55,18 @@ public final class Messages {
         switch (key) {
           case "chat-filter-blocked" -> CHAT_FILTER_BLOCKED;
           case "punishment-announcement" -> PUNISHMENT_ANNOUNCEMENT;
+          case "anti-afk-warning" ->
+              "<yellow>You will be disconnected for inactivity in <seconds>"
+                  + " seconds.</yellow><newline><white>Click this message or type /mpactive <code>"
+                  + " to confirm you are here.</white>";
+          case "anti-afk-confirmed" ->
+              "<green>Presence confirmed. Your idle timer has been reset.</green>";
+          case "anti-afk-invalid" ->
+              "<yellow>No matching active idle check. Use the code from your latest"
+                  + " warning.</yellow>";
+          case "anti-afk-kick" ->
+              "<yellow>Disconnected for inactivity.</yellow>"
+                  + "<newline><gray>You can reconnect when you are ready to play.</gray>";
           default -> key;
         };
     return mini.deserialize(templates.getOrDefault(key, fallback), tags.build());

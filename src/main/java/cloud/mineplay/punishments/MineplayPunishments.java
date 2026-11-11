@@ -1,5 +1,7 @@
 package cloud.mineplay.punishments;
 
+import cloud.mineplay.punishments.afk.AfkManager;
+import cloud.mineplay.punishments.afk.AfkSettings;
 import cloud.mineplay.punishments.chat.ChatFilter;
 import cloud.mineplay.punishments.chat.ChatFilterListener;
 import cloud.mineplay.punishments.commands.ModerationCommands;
@@ -34,6 +36,7 @@ public final class MineplayPunishments extends JavaPlugin {
   private PunishMenu menus;
   private PunishmentAnnouncements announcements;
   private ChatFilterListener chatFilter;
+  private AfkManager antiAfk;
   private PluginSettings settings;
   private volatile Messages messages;
 
@@ -70,6 +73,8 @@ public final class MineplayPunishments extends JavaPlugin {
       new ModerationCommands(this).register();
       menus = new PunishMenu(this);
       menus.register();
+      antiAfk = new AfkManager(this, this::messages, AfkSettings.read(getConfig()));
+      antiAfk.start();
       sync.start();
       Bukkit.getScheduler()
           .runTaskTimer(
@@ -94,6 +99,7 @@ public final class MineplayPunishments extends JavaPlugin {
     } catch (Exception ex) {
       logFailure("startup_failed", ex);
       Bukkit.getScheduler().cancelTasks(this);
+      stopAntiAfk();
       stopTelemetry(false);
       if (menus != null) menus.closeAll();
       if (sync != null) sync.stop();
@@ -174,6 +180,7 @@ public final class MineplayPunishments extends JavaPlugin {
       sync = candidate;
       sync.start();
       telemetryCollector.reconfigure(TelemetrySettings.read(getConfig()));
+      antiAfk.reconfigure(AfkSettings.read(getConfig()));
       chatFilter.replace(nextFilter);
     } catch (Exception ex) {
       if (candidate != null) candidate.stop();
@@ -187,6 +194,7 @@ public final class MineplayPunishments extends JavaPlugin {
           configurePolicies();
           enforcement.reload();
           telemetryCollector.reconfigure(TelemetrySettings.read(getConfig()));
+          antiAfk.reconfigure(AfkSettings.read(getConfig()));
         }
         if (stoppedPrevious && previousSync.stoppedCleanly()) {
           sync = createSyncClient();
@@ -201,6 +209,7 @@ public final class MineplayPunishments extends JavaPlugin {
 
   @Override
   public void onDisable() {
+    stopAntiAfk();
     // Capture final observations before the SQLite worker drains; reload never closes sessions.
     stopTelemetry(true);
     if (menus != null) menus.closeAll();
@@ -223,6 +232,14 @@ public final class MineplayPunishments extends JavaPlugin {
         enforcement::enforceAll,
         community::ready,
         TelemetrySettings.read(getConfig()).enabled() ? telemetry : null);
+  }
+
+  private void stopAntiAfk() {
+    try {
+      if (antiAfk != null) antiAfk.stop();
+    } catch (RuntimeException failure) {
+      logFailure("anti_afk_shutdown_failed", failure);
+    }
   }
 
   private void stopTelemetry(boolean shutdown) {

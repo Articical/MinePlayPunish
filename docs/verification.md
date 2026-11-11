@@ -2,6 +2,10 @@
 
 This record describes checks actually performed. It does not certify production readiness.
 
+For the 1.4.0 idle detector, see [anti-AFK verification](anti-afk-verification.md).
+For the 1.4.1 telemetry null-counter correction, see the
+[11 November 2026 regression record](telemetry-null-fix-verification.md).
+
 For the newer 1.3.0 player-telemetry build, see the
 [9 November 2026 verification record](telemetry-verification.md). The results below
 describe the earlier releases and their historical artifacts.

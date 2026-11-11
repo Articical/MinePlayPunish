@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cloud.mineplay"
-version = "1.3.0"
+version = "1.4.1"
 description = "Standalone, locally authoritative Mineplay moderation for Paper"
 
 val javaFormatter = configurations.create("javaFormatter")
@@ -65,6 +65,7 @@ tasks.test {
     jvmArgs("-javaagent:${mockitoAgent.singleFile}", "-Xshare:off")
 }
 tasks.processResources {
+    inputs.property("pluginVersion", pluginVersion)
     filesMatching("plugin.yml") { expand("version" to pluginVersion) }
 }
 tasks.jar { archiveClassifier.set("unbundled") }

@@ -7,6 +7,9 @@ website: https://www.mineplay.co.uk
 description: Standalone SQLite moderation, community service and website integration
 softdepend: [LuckPerms, WorldGuard, Essentials, Chatter, Vault]
 commands:
+  mpactive:
+    description: Confirm your presence using your current idle warning code
+    usage: /mpactive <code>
   punish:
     description: Open the staff punishment menu for a player
     usage: /punish <player|uuid> [-s]
@@ -70,6 +73,9 @@ commands:
     usage: /mp admin status|sync|reload|recover|quarry|prison, /mp acknowledge <id>, or /mp appeal <id>
 
 permissions:
+  mineplaypunishments.afk.bypass:
+    description: Exempt this player from idle removal
+    default: op
   mineplaypunishments.gui:
     description: Open punishment menus (individual action permissions are also required)
     default: op

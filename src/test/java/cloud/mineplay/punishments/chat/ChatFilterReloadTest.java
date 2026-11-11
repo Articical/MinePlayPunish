@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import cloud.mineplay.punishments.MineplayPunishments;
+import cloud.mineplay.punishments.afk.AfkManager;
+import cloud.mineplay.punishments.afk.AfkSettings;
 import cloud.mineplay.punishments.communityservice.CommunityServiceManager;
 import cloud.mineplay.punishments.config.Messages;
 import cloud.mineplay.punishments.config.PluginSettings;
@@ -46,6 +48,7 @@ class ChatFilterReloadTest {
   private PunishMenu menus;
   private SyncClient previousSync;
   private TelemetryCollector telemetry;
+  private AfkManager antiAfk;
 
   @BeforeEach
   void setup() throws Exception {
@@ -66,6 +69,7 @@ class ChatFilterReloadTest {
     menus = mock(PunishMenu.class);
     previousSync = mock(SyncClient.class);
     telemetry = mock(TelemetryCollector.class);
+    antiAfk = mock(AfkManager.class);
     when(previousSync.stoppedCleanly()).thenReturn(true);
     listener = new ChatFilterListener(plugin, ChatFilter.read(config));
     field("settings", previousSettings);
@@ -78,6 +82,7 @@ class ChatFilterReloadTest {
     field("sync", previousSync);
     field("chatFilter", listener);
     field("telemetryCollector", telemetry);
+    field("antiAfk", antiAfk);
   }
 
   @Test
@@ -170,6 +175,29 @@ class ChatFilterReloadTest {
         .doNothing()
         .when(telemetry)
         .reconfigure(any(TelemetrySettings.class));
+    try (MockedStatic<PluginSettings> settings = mockStatic(PluginSettings.class);
+        MockedConstruction<Messages> messages = mockConstruction(Messages.class);
+        MockedConstruction<SyncClient> syncs = mockConstruction(SyncClient.class)) {
+      settings.when(() -> PluginSettings.read(config, directory)).thenReturn(nextSettings);
+      assertThrows(IllegalArgumentException.class, plugin::reloadSettings);
+      assertEquals(previous, config.saveToString());
+      assertSame(previousSettings, plugin.settings());
+      assertEquals(2, syncs.constructed().size());
+      verify(syncs.constructed().getFirst()).stop();
+      verify(syncs.constructed().getLast()).start();
+      assertFiltered("forbidden", true);
+      assertFiltered("replacement", false);
+    }
+  }
+
+  @Test
+  void idleDetectorReloadFailureKeepsPriorChatRulesAndRestartsPriorSync() {
+    String previous = config.saveToString();
+    newRulesOnReload();
+    doThrow(new IllegalStateException("idle scheduler unavailable"))
+        .doNothing()
+        .when(antiAfk)
+        .reconfigure(any(AfkSettings.class));
     try (MockedStatic<PluginSettings> settings = mockStatic(PluginSettings.class);
         MockedConstruction<Messages> messages = mockConstruction(Messages.class);
         MockedConstruction<SyncClient> syncs = mockConstruction(SyncClient.class)) {

@@ -21,6 +21,8 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.MockedStatic;
 
 class TelemetryCollectorTest {
@@ -319,6 +321,82 @@ class TelemetryCollectorTest {
   }
 
   @Test
+  void sameTickVerifiedJoinAndQuitMergeUnknownCountersWithoutLosingTheLogout() throws Exception {
+    Player player = player(true);
+    Instant first = clock.instant().minusSeconds(86400), joined = clock.instant();
+    collector.start();
+    CompletableFuture<Instant> blocked = new CompletableFuture<>();
+    var field = TelemetryCollector.class.getDeclaredField("firstRequests");
+    field.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Map<UUID, CompletableFuture<Instant>> requests =
+        (Map<UUID, CompletableFuture<Instant>>) field.get(collector);
+    requests.put(player.getUniqueId(), blocked);
+    collector.join(join(player));
+    clock.advance(1);
+    collector.quit(quit(player));
+    assertTrue(saved.isEmpty(), "Join and quit must wait for verified historical first join");
+
+    blocked.complete(first);
+    // The default five-player budget processes both drafts before submitting a database write.
+    assertDoesNotThrow(collector::tick);
+
+    assertEquals(1, saved.size());
+    var result = saved.getFirst();
+    assertFalse(result.online());
+    assertEquals(first, result.firstJoinedAt());
+    assertEquals(joined, result.lastJoinedAt());
+    assertEquals(clock.instant(), result.observedAt());
+    assertEquals(clock.instant(), result.lastLeftAt());
+    assertNull(result.totalPlaySeconds());
+    assertNull(result.loginCount());
+    assertEquals(1, result.sessions().size());
+    assertEquals(joined, result.sessions().getFirst().joinedAt());
+    assertEquals(clock.instant(), result.sessions().getFirst().leftAt());
+  }
+
+  @Test
+  void queuedRefreshAndQuitRetainUnknownCountersWhileAnotherWriteIsInFlight() {
+    Player player = player(false);
+    online.add(player);
+    CompletableFuture<Boolean> blocked = new CompletableFuture<>();
+    doAnswer(
+            call -> {
+              saved.add(call.getArgument(0));
+              return saved.size() == 1 ? blocked : CompletableFuture.completedFuture(true);
+            })
+        .when(repository)
+        .observe(any());
+    collector.start();
+    collector.join(join(player));
+    var joined = saved.getFirst();
+    when(player.hasPlayedBefore()).thenReturn(true);
+
+    clock.advance(30);
+    collector.tick();
+    assertEquals(1, saved.size(), "Refresh remains queued while the original write is pending");
+    clock.advance(5);
+    online.remove(player);
+    collector.quit(quit(player));
+    assertEquals(1, saved.size());
+
+    blocked.complete(true);
+    assertDoesNotThrow(collector::tick);
+
+    assertEquals(2, saved.size());
+    var result = saved.getLast();
+    assertFalse(result.online(), "A nullable-statistic merge must not discard the queued logout");
+    assertEquals(clock.instant(), result.observedAt());
+    assertEquals(clock.instant(), result.lastLeftAt());
+    assertNull(result.totalPlaySeconds());
+    assertNull(result.loginCount());
+    assertEquals(
+        joined.sessions().getFirst().sessionId(), result.sessions().getFirst().sessionId());
+    assertEquals(clock.instant(), result.sessions().getFirst().leftAt());
+    verify(logger, never()).warning(contains("SOURCE_UNAVAILABLE"));
+  }
+
+  @Test
   void shutdownRequeuesInFlightObservationSoLateDatabaseFailureIsNotSilentlyLost() {
     CompletableFuture<Boolean> original = new CompletableFuture<>();
     doAnswer(
@@ -436,6 +514,61 @@ class TelemetryCollectorTest {
     merged = TelemetryCollector.merge(merged, second);
     assertEquals(2L, merged.loginCount());
     assertEquals(2, merged.sessions().size());
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      nullValues = "unknown",
+      value = {
+        "unknown,unknown,unknown,unknown,unknown,unknown",
+        "unknown,unknown,unknown,0,0,0",
+        "0,0,0,unknown,unknown,unknown",
+        "unknown,0,0,unknown,0,0",
+        "0,unknown,0,0,unknown,0",
+        "unknown,23,23,11,unknown,11",
+        "23,unknown,23,unknown,11,11",
+        "11,23,23,23,11,23",
+        "23,11,23,11,23,23",
+        "42,42,42,42,42,42",
+        "0,9223372036854775806,9223372036854775806,9223372036854775806,0,9223372036854775806",
+        "9223372036854775806,0,9223372036854775806,0,9223372036854775806,9223372036854775806",
+        "unknown,9223372036854775806,9223372036854775806,9223372036854775806,unknown,9223372036854775806",
+        "9223372036854775806,unknown,9223372036854775806,unknown,9223372036854775806,9223372036854775806"
+      })
+  void coalescingPreservesUnknownStatisticsAndNeverLowersKnownCounters(
+      Long previousPlay,
+      Long updatePlay,
+      Long expectedPlay,
+      Long previousLogins,
+      Long updateLogins,
+      Long expectedLogins) {
+    var previous = observationWithCounters(clock.instant(), previousPlay, previousLogins);
+    clock.advance(1);
+    var update = observationWithCounters(clock.instant(), updatePlay, updateLogins);
+
+    var result = assertDoesNotThrow(() -> TelemetryCollector.merge(previous, update));
+
+    assertEquals(expectedPlay, result.totalPlaySeconds());
+    assertEquals(expectedLogins, result.loginCount());
+    assertEquals(update.observedAt(), result.observedAt());
+  }
+
+  private TelemetryObservation observationWithCounters(
+      Instant observed, Long playSeconds, Long loginCount) {
+    Instant first = Instant.parse("2026-11-01T12:00:00Z");
+    return new TelemetryObservation(
+        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+        "ExamplePlayer",
+        observed,
+        first,
+        first,
+        null,
+        false,
+        playSeconds,
+        loginCount,
+        TelemetryObservation.Economy.unavailable(),
+        List.of(),
+        List.of());
   }
 
   private Player player(boolean previous) {

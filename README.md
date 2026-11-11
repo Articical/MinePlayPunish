@@ -16,7 +16,7 @@ $env:JAVA_HOME = 'C:\path\to\jdk-25'
 .\gradlew.bat clean build --no-daemon
 ```
 
-Deploy **`build/libs/MineplayPunishments-1.3.0.jar`**, the bundled JAR, to `plugins/`
+Deploy **`build/libs/MineplayPunishments-1.4.1.jar`**, the bundled JAR, to `plugins/`
 and restart Paper. Do not deploy the `-unbundled` or `-sources` JAR. SQLite JDBC,
 Gson, RE2/J and the command parser are bundled; Paper/Adventure, Vault and LuckPerms are not.
 LuckPerms is optional but needed to verify offline staff permissions without an explicit override.
@@ -59,7 +59,25 @@ to quarry and tool restrictions even when they hold that permission.
 Website sync is quiet during healthy polling and waits between retries. It logs
 an initial failure, changes in failure category and a single recovery message.
 
+## Idle players and AFK machines
+
+Version 1.4.0 enables a configurable **15-minute idle limit**, warning players two
+minutes before disconnecting them. The warning has a clickable, one-time presence
+confirmation; players can also type `/mpactive <code>`. No punishment record or
+punishment announcement is created, and players can reconnect normally.
+
+The detector samples players every five seconds and uses bounded activity history.
+Passive movement, jumping, spinning, repeated mob hits and short movement loops
+do not keep refreshing the timer. Mining/building at new positions and distinct
+public chat count as activity. Staff with `mineplaypunishments.afk.bypass` are exempt
+(operators by default). Settings, limitations and real-client checks are in the
+[anti-AFK guide](docs/anti-afk.md).
+
 ## Player telemetry
+
+Version 1.4.1 fixes a collector exception when merging observations whose login
+count or playtime are both unknown. Unknown counters remain `null`; known values
+are retained. Keep the existing configuration and database when upgrading.
 
 Version 1.3.0 publishes the historical player roster, online observations, login
 sessions, economy status and recent addresses to the dedicated `/players` endpoint.

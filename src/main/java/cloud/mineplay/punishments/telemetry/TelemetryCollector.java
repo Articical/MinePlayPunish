@@ -616,7 +616,10 @@ public final class TelemetryCollector implements Listener {
   }
 
   private static Long greater(Long a, Long b) {
-    return a == null ? b : b == null ? a : Math.max(a, b);
+    // Keep nullable branches separate: a numeric ternary would unbox an unknown value.
+    if (a == null) return b;
+    if (b == null) return a;
+    return Math.max(a, b);
   }
 
   static String address(InetSocketAddress socket) {
