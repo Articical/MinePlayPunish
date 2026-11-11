@@ -23,7 +23,7 @@ def render():
     assert len({rule["id"] for rule in rules}) == len(rules), "Duplicate rule identifier"
     lines = [
         "# Mineplay UK adult-community moderation preset, reviewed 2026-10-20.",
-        "# Requires MineplayPunishments 1.1.0; no new JAR needed.",
+        "# Requires a MineplayPunishments build with the 40-regex limit.",
         "# REPLACE ONLY your existing chat-filter section in the plugin config.yml.",
         "# Do not replace the rest of config.yml. This is not a standalone plugin config.",
         "# Apply with /mp admin reload. Existing failed regex edits must be repaired.",
